@@ -120,23 +120,35 @@ namespace SS_OpenCV
                 for(int x = 0; x < width; x++)
                 {
                     int label = labels[y, x];
-                    BoundingBox bbox;
-
-                    try
+                    if (label != -1)
                     {
-                        bbox = boundingBoxes[label];
-                    }
-                    catch(KeyNotFoundException)
-                    {
-                        bbox = new BoundingBox { left = -1, right = -1, top = -1, bottom = -1, center_x = -1, center_y = -1 };
-                        boundingBoxes.Add(label, bbox);
-                    }
+                        BoundingBox bbox;
 
-                    bbox.left = (bbox.left == -1 || x < bbox.left) ? x : bbox.left;
-                    bbox.right = (bbox.right == -1 || x > bbox.right) ? x : bbox.right;
-                    bbox.top = (bbox.top == -1 || y < bbox.top) ? x : bbox.top;
-                    bbox.bottom = (bbox.bottom == -1 || y > bbox.bottom) ? x : bbox.bottom;
+                        try
+                        {
+                            bbox = boundingBoxes[label];
+
+                            if (x < bbox.left) bbox.left = x;
+                            if (x > bbox.right) bbox.right = x;
+                            if (y < bbox.top) bbox.top = y;
+                            if (y > bbox.bottom) bbox.bottom = y;
+
+                            boundingBoxes[label] = bbox;
+                        }
+                        catch (KeyNotFoundException)
+                        {
+                            bbox = new BoundingBox { left = x, right = x, top = y, bottom = y, center_x = -1, center_y = -1 };
+                            boundingBoxes.Add(label, bbox);
+                        }
+                    }
                 }
+            }
+
+            foreach(KeyValuePair<int, BoundingBox> entry in boundingBoxes)
+            {
+                BoundingBox bbox = entry.Value;
+                bbox.center_x = (int)Math.Round(bbox.left + (bbox.right - bbox.left) / 2.0);
+                bbox.center_y = (int)Math.Round(bbox.top + (bbox.bottom - bbox.top) / 2.0);
             }
 
             return boundingBoxes;
