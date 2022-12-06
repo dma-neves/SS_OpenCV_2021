@@ -593,7 +593,7 @@ namespace SS_OpenCV
         public static void Mean(Image<Bgr, byte> img, Image<Bgr, byte> imgCopy)
         {
             //Mean_A(img, imgCopy);
-            Mean_B(img, imgCopy);
+            Mean_solutionB(img, imgCopy);
         }
 
         public static void Mean_A(Image<Bgr, byte> img, Image<Bgr, byte> imgCopy)
@@ -661,7 +661,7 @@ namespace SS_OpenCV
             }
         }
 
-        public static void Mean_B(Image<Bgr, byte> img, Image<Bgr, byte> imgCopy)
+        public static void Mean_solutionB(Image<Bgr, byte> img, Image<Bgr, byte> imgCopy)
         {
 
             unsafe
@@ -775,6 +775,141 @@ namespace SS_OpenCV
                 }
             }
         }
+
+        /*public static void Mean_solutionC(Image<Bgr,byte> img,Image<Bgr,byte> imgCopy,int size)
+        {
+
+            unsafe
+            {
+                // direct access to the image memory(sequencial)
+                // direcion top left -> bottom right
+
+
+                MIplImage m = img.MIplImage;
+                byte* dataBasePtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+                int widthStep = m.WidthStep;
+                int width = img.Width;
+                int height = img.Height;
+                int nChan = m.NChannels; // number of channels - 3
+                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+                int x, y;
+
+                Image<Bgr, byte> imgPadded = getPaddedImg(img, size/2);
+                MIplImage mpadded = imgPadded.MIplImage;
+                byte* dataBasePtrPadded = (byte*)mpadded.ImageData.ToPointer(); // Pointer to the image
+                int widthStepPadded = mpadded.WidthStep;
+                int widthPadded = imgPadded.Width;
+                int heightPadded = imgPadded.Height;
+                int paddingPadded = mpadded.WidthStep - mpadded.NChannels * mpadded.Width; // alinhament bytes (padding)
+
+                Image<Bgr, int> imgSums = new Image<Bgr, int>(width, height);
+                MIplImage msums = imgSums.MIplImage;
+                int* dataBasePtrSums = (int*)msums.ImageData.ToPointer(); // Pointer to the image
+                int widthStepSums = msums.WidthStep;
+                int widthSums = imgSums.Width;
+                int heightSums = imgSums.Height;
+                int paddingSums = widthStepSums - msums.NChannels * msums.Width; // alinhament bytes (padding)
+                paddingSums = 0; // TODO: why do we need to set padding to 0 for it to work?
+
+
+                if (nChan == 3) // image in RGB
+                {
+                    int* dataPtrSums = dataBasePtrSums;
+                    byte* dataPtrPadded = dataBasePtrPadded + widthStepPadded + nChan;
+
+                    int[] prevSum = new int[3];
+                    
+                    Console.WriteLine("YO");
+
+                    for (y = 0; y < height; y++)
+                    {
+                        // For x = 0 calculate mean normally
+
+                        dataPtrSums[0] = (int)(
+                            (dataPtrPadded - widthStepPadded - nChan)[0] + (dataPtrPadded - widthStepPadded)[0] + (dataPtrPadded - widthStepPadded + nChan)[0] +
+                            (dataPtrPadded - nChan)[0] + (dataPtrPadded)[0] + (dataPtrPadded + nChan)[0] +
+                            (dataPtrPadded + widthStepPadded - nChan)[0] + (dataPtrPadded + widthStepPadded)[0] + (dataPtrPadded + widthStepPadded + nChan)[0]
+                        );
+
+                        dataPtrSums[1] = (int)(
+                            (dataPtrPadded - widthStepPadded - nChan)[1] + (dataPtrPadded - widthStepPadded)[1] + (dataPtrPadded - widthStepPadded + nChan)[1] +
+                            (dataPtrPadded - nChan)[1] + (dataPtrPadded)[1] + (dataPtrPadded + nChan)[1] +
+                            (dataPtrPadded + widthStepPadded - nChan)[1] + (dataPtrPadded + widthStepPadded)[1] + (dataPtrPadded + widthStepPadded + nChan)[1]
+                        );
+
+                        dataPtrSums[2] = (int)(
+                            (dataPtrPadded - widthStepPadded - nChan)[2] + (dataPtrPadded - widthStepPadded)[2] + (dataPtrPadded - widthStepPadded + nChan)[2] +
+                            (dataPtrPadded - nChan)[2] + (dataPtrPadded)[2] + (dataPtrPadded + nChan)[2] +
+                            (dataPtrPadded + widthStepPadded - nChan)[2] + (dataPtrPadded + widthStepPadded)[2] + (dataPtrPadded + widthStepPadded + nChan)[2]
+                        );
+
+                        prevSum[0] = dataPtrSums[0];
+                        prevSum[1] = dataPtrSums[1];
+                        prevSum[2] = dataPtrSums[2];
+
+                        dataPtrSums += nChan;
+                        dataPtrPadded += nChan;
+
+                        // For x > 0 calculate mean using previous sum
+
+                        Console.WriteLine("YO");
+
+                        for (x = 1; x < width; x++)
+                        {
+                            dataPtrSums[0] = (int)(
+                                prevSum[0]
+                                - ((dataPtrPadded - 2 * nChan - widthStepPadded)[0] + (dataPtrPadded - 2 * nChan)[0] + (dataPtrPadded - 2 * nChan + widthStepPadded)[0])
+                                + ((dataPtrPadded + nChan - widthStepPadded)[0] + (dataPtrPadded + nChan)[0] + (dataPtrPadded + nChan + widthStepPadded)[0])
+                            );
+
+                            dataPtrSums[1] = (int)(
+                                prevSum[1]
+                                - ((dataPtrPadded - 2 * nChan - widthStepPadded)[1] + (dataPtrPadded - 2 * nChan)[1] + (dataPtrPadded - 2 * nChan + widthStepPadded)[1])
+                                + ((dataPtrPadded + nChan - widthStepPadded)[1] + (dataPtrPadded + nChan)[1] + (dataPtrPadded + nChan + widthStepPadded)[1])
+                            );
+
+                            dataPtrSums[2] = (int)(
+                                prevSum[2]
+                                - ((dataPtrPadded - 2 * nChan - widthStepPadded)[2] + (dataPtrPadded - 2 * nChan)[2] + (dataPtrPadded - 2 * nChan + widthStepPadded)[2])
+                                + ((dataPtrPadded + nChan - widthStepPadded)[2] + (dataPtrPadded + nChan)[2] + (dataPtrPadded + nChan + widthStepPadded)[2])
+                            );
+
+
+                            prevSum[0] = dataPtrSums[0];
+                            prevSum[1] = dataPtrSums[1];
+                            prevSum[2] = dataPtrSums[2];
+
+                            dataPtrSums += nChan;
+                            dataPtrPadded += nChan;
+                        }
+
+                        dataPtrSums += paddingSums;
+                        dataPtrPadded += nChan + paddingPadded + nChan;
+                    }
+
+                    byte* dataPtr = dataBasePtr;
+                    dataPtrSums = dataBasePtrSums;
+
+                    for (y = 0; y < height; y++)
+                    {
+                        for (x = 0; x < width; x++)
+                        {
+                            dataPtr[0] = (byte)(Math.Round(dataPtrSums[0] / 9.0));
+                            dataPtr[1] = (byte)(Math.Round(dataPtrSums[1] / 9.0));
+                            dataPtr[2] = (byte)(Math.Round(dataPtrSums[2] / 9.0));
+
+                            // advance the pointer to the next pixel
+                            dataPtr += nChan;
+                            dataPtrSums += nChan;
+                        }
+
+                        dataPtr += padding;
+                        dataPtrSums += paddingSums;
+                    }
+                }
+            }
+
+        }*/
 
         public static void NonUniform(Image<Bgr, byte> img, Image<Bgr, byte> imgCopy, float[,] matrix, float matrixWeight, float offset)
         {

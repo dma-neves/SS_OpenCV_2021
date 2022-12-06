@@ -376,7 +376,7 @@ namespace SS_OpenCV
 
             // DateTime start = DateTime.Now;
 
-            ImageClass.Mean_B(img, imgUndo);
+            ImageClass.Mean_solutionB(img, imgUndo);
 
             // TimeSpan span = DateTime.Now - start;
             // MessageBox.Show(span.ToString());
