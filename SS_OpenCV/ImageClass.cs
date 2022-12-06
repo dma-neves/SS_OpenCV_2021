@@ -13,6 +13,7 @@ namespace SS_OpenCV
     {
 
         private static bool VERIFY = false;
+        private static double COMPONENT_CENTER_DIST_MARGIN = 2.0;
 
         /// <summary>
         /// Image Negative using EmguCV library
@@ -1458,6 +1459,49 @@ namespace SS_OpenCV
             return sb.ToString();
         }
 
+        public static double getCenterDist(BoundingBox bbox_a, BoundingBox bbox_b)
+        {
+            double delta_x = bbox_b.center_x - bbox_a.center_x;
+            double delta_y = bbox_b.center_y - bbox_a.center_y;
+
+            return Math.Sqrt(delta_x*delta_x + delta_y*delta_y);
+        }
+
+        public static bool isContained(BoundingBox bbox_a, BoundingBox bbox_b)
+        {
+            return bbox_a.left >= bbox_b.left && bbox_a.right <= bbox_b.right && bbox_a.top >= bbox_b.top && bbox_a.bottom <= bbox_b.bottom;
+        }
+
+        public static List<BoundingBox> getPositioningBlocks(Dictionary<int, BoundingBox> bboxes)
+        {
+            List<BoundingBox> positioningBlocks = new List<BoundingBox>();
+            List<BoundingBox> bboxesList = new List<BoundingBox>(bboxes.Values);
+
+            for (int i = 0; i < bboxesList.Count; i++)
+            {
+                for (int j = i + 1; j < bboxesList.Count; j++)
+                {
+                    BoundingBox bbox_a = bboxesList[i];
+                    BoundingBox bbox_b = bboxesList[j];
+
+                    if (getCenterDist(bbox_a, bbox_b) < COMPONENT_CENTER_DIST_MARGIN)
+                    {
+                        if (isContained(bbox_b, bbox_a))
+                            positioningBlocks.Add(bbox_a);
+                        else if (isContained(bbox_a, bbox_b))
+                            positioningBlocks.Add(bbox_b);
+                    }
+                }
+            }
+
+            if(positioningBlocks.Count != 3)
+            {
+                throw new Exception("Didn't find exactly 3 positioning blocks");
+            }
+
+            return positioningBlocks;
+        }
+
         /// <summary>
         /// QR code reader
         /// </summary>
@@ -1547,9 +1591,15 @@ namespace SS_OpenCV
                 else if(level == 2)
                 {
                     int[,] labels = LinkedComponents.getLabels(img);
-                    LinkedComponents.printLabels(labels, height, width);
+                    // LinkedComponents.printLabels(labels, height, width);
                     Dictionary<int, BoundingBox> bboxes = LinkedComponents.getBoundingBoxes(labels, height, width);
 
+                    List<BoundingBox> positioningBlocks = getPositioningBlocks(bboxes);
+                    Console.WriteLine("PositioningBlocks:");
+                    for(int i = 0; i < positioningBlocks.Count; i++)
+                    {
+                        Console.WriteLine("x: " + positioningBlocks[i].center_x + " y: " + positioningBlocks[i].center_y + "\n");
+                    }
                 }
             }
         }

@@ -144,14 +144,18 @@ namespace SS_OpenCV
                 }
             }
 
+            Dictionary<int, BoundingBox> boundingBoxesWithCenter = new Dictionary<int, BoundingBox>();
+
             foreach(KeyValuePair<int, BoundingBox> entry in boundingBoxes)
             {
                 BoundingBox bbox = entry.Value;
                 bbox.center_x = (int)Math.Round(bbox.left + (bbox.right - bbox.left) / 2.0);
                 bbox.center_y = (int)Math.Round(bbox.top + (bbox.bottom - bbox.top) / 2.0);
+
+                boundingBoxesWithCenter.Add(entry.Key, bbox);
             }
 
-            return boundingBoxes;
+            return boundingBoxesWithCenter;
         }
     }
 }
