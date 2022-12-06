@@ -1549,6 +1549,7 @@ namespace SS_OpenCV
                     int[,] labels = LinkedComponents.getLabels(img);
                     LinkedComponents.printLabels(labels, height, width);
                     Dictionary<int, BoundingBox> bboxes = LinkedComponents.getBoundingBoxes(labels, height, width);
+
                 }
             }
         }
