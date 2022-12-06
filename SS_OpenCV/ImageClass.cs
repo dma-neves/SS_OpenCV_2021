@@ -1103,7 +1103,7 @@ namespace SS_OpenCV
                 int height = img.Height;
                 int nChan = m.NChannels; // number of channels - 3
                 int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
-                int x, y, chan;
+                int x, y;
 
 
                 Image<Bgr, byte> imgPadded = getPaddedImg(img, 1);
