@@ -6,6 +6,7 @@ using Emgu.CV;
 using System.Drawing;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Windows;
 
 namespace SS_OpenCV
 {
@@ -1506,6 +1507,9 @@ namespace SS_OpenCV
             ConvertToBW(img, GetOtsuThreshold(img));
         }
 
+        //                                                         |                           |
+        // ####################################################### V QR Code related functions V #######################################################
+
         public static byte[,] ConvertToBinary(Emgu.CV.Image<Bgr, byte> img)
         {
             byte[,] pixels = new byte[img.Height,img.Width];
@@ -1594,7 +1598,7 @@ namespace SS_OpenCV
             return sb.ToString();
         }
 
-        public static double getCenterDist(BoundingBox bbox_a, BoundingBox bbox_b)
+        public static double GetCenterDist(BoundingBox bbox_a, BoundingBox bbox_b)
         {
             double delta_x = bbox_b.center_x - bbox_a.center_x;
             double delta_y = bbox_b.center_y - bbox_a.center_y;
@@ -1602,14 +1606,15 @@ namespace SS_OpenCV
             return Math.Sqrt(delta_x*delta_x + delta_y*delta_y);
         }
 
-        public static bool isContained(BoundingBox bbox_a, BoundingBox bbox_b)
+        public static bool IsContained(BoundingBox bbox_a, BoundingBox bbox_b)
         {
             return bbox_a.left >= bbox_b.left && bbox_a.right <= bbox_b.right && bbox_a.top >= bbox_b.top && bbox_a.bottom <= bbox_b.bottom;
         }
 
-        public static List<BoundingBox> getPositioningBlocks(Dictionary<int, BoundingBox> bboxes)
+        public static BoundingBox[] GetPositioningBlocks(Dictionary<int, BoundingBox> bboxes)
         {
-            List<BoundingBox> positioningBlocks = new List<BoundingBox>();
+            int idx = 0;
+            BoundingBox[] positioningBlocks = new BoundingBox[3];
             List<BoundingBox> bboxesList = new List<BoundingBox>(bboxes.Values);
 
             for (int i = 0; i < bboxesList.Count; i++)
@@ -1619,22 +1624,58 @@ namespace SS_OpenCV
                     BoundingBox bbox_a = bboxesList[i];
                     BoundingBox bbox_b = bboxesList[j];
 
-                    if (getCenterDist(bbox_a, bbox_b) < COMPONENT_CENTER_DIST_MARGIN)
+                    if (GetCenterDist(bbox_a, bbox_b) < COMPONENT_CENTER_DIST_MARGIN)
                     {
-                        if (isContained(bbox_b, bbox_a))
-                            positioningBlocks.Add(bbox_a);
-                        else if (isContained(bbox_a, bbox_b))
-                            positioningBlocks.Add(bbox_b);
+                        if(idx == 3)
+                            throw new Exception("Found more than 3 positioning blocks");
+
+                        if (IsContained(bbox_b, bbox_a))
+                            positioningBlocks[idx++] = bbox_a;
+                        else if (IsContained(bbox_a, bbox_b))
+                            positioningBlocks[idx++] = bbox_b;
                     }
                 }
             }
 
-            if(positioningBlocks.Count != 3)
-            {
-                throw new Exception("Didn't find exactly 3 positioning blocks");
-            }
+            if (idx != 3)
+                throw new Exception("Found less than 3 positioning blocks");
 
             return positioningBlocks;
+        }
+
+        public static double GetRotation(BoundingBox[] positioningBlocks)
+        {
+            double rot = 0.0;
+
+
+
+            return rot;
+        }
+
+        private static int[] GetQRCodeLimits(byte[,] pixels, int imgHeight, int imgWidth)
+        {
+            int x, y;
+            int left = 0, top = 0, right = 0;
+            bool foundFirstLine = false;
+            for (y = 0; y < imgHeight && !foundFirstLine; y++)
+            {
+                for (x = 0; x < imgWidth; x++)
+                {
+                    if (pixels[y, x] == 0)
+                    {
+                        if (!foundFirstLine)
+                        {
+                            foundFirstLine = true;
+                            left = x;
+                            top = y;
+                        }
+                        else
+                            right = x;
+                    }
+                }
+            }
+
+            return new int[] { left, right, top };
         }
 
         /// <summary>
@@ -1676,38 +1717,17 @@ namespace SS_OpenCV
             unsafe
             {
                 MIplImage m = img.MIplImage;
-                byte* dataBasePtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
-                int widthStep = m.WidthStep;
-                int width = img.Width;
-                int height = img.Height;
-                int nChan = m.NChannels; // number of channels - 3
-                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
-                int x, y;
+                int imgWidth = img.Width;
+                int imgHeight = img.Height;
 
                 if (level == 1)
                 {
                     //ConvertToBW(img, 0);
                     byte[,] pixels = ConvertToBinary(img);
-
-                    int left = 0, top = 0, right = 0;
-                    bool foundFirstLine = false;
-                    for (y = 0; y < height && !foundFirstLine; y++)
-                    {
-                        for(x = 0; x < width; x++)
-                        {
-                            if (pixels[y,x] == 0)
-                            {
-                                if (!foundFirstLine)
-                                {
-                                    foundFirstLine = true;
-                                    left = x;
-                                    top = y;
-                                }
-                                else
-                                    right = x;
-                            }
-                        }
-                    }
+                    int[] qrCodeLimits = GetQRCodeLimits(pixels, imgHeight, imgWidth);
+                    int left = qrCodeLimits[0];
+                    int right = qrCodeLimits[1];
+                    int top = qrCodeLimits[2];
 
                     Width = right - left + 1;
                     Height = Width;
@@ -1725,13 +1745,12 @@ namespace SS_OpenCV
                 }
                 else if(level == 2)
                 {
-                    int[,] labels = LinkedComponents.getLabels(img);
+                    int[,] labels = LinkedComponents.GetLabels(img);
                     // LinkedComponents.printLabels(labels, height, width);
-                    Dictionary<int, BoundingBox> bboxes = LinkedComponents.getBoundingBoxes(labels, height, width);
-
-                    List<BoundingBox> positioningBlocks = getPositioningBlocks(bboxes);
+                    Dictionary<int, BoundingBox> bboxes = LinkedComponents.GetBoundingBoxes(labels, imgHeight, imgWidth);
+                    BoundingBox[] positioningBlocks = GetPositioningBlocks(bboxes);
                     Console.WriteLine("PositioningBlocks:");
-                    for(int i = 0; i < positioningBlocks.Count; i++)
+                    for(int i = 0; i < 3; i++)
                     {
                         Console.WriteLine("x: " + positioningBlocks[i].center_x + " y: " + positioningBlocks[i].center_y + "\n");
                     }

@@ -21,7 +21,7 @@ namespace SS_OpenCV
 
     internal class LinkedComponents
     {
-        public static void printLabels(int[,] labels, int height, int width)
+        public static void PrintLabels(int[,] labels, int height, int width)
         {
             /*
              * DEBUG
@@ -42,7 +42,7 @@ namespace SS_OpenCV
 
         }
 
-        public static int[,] getLabels(Image<Bgr, byte> img)
+        public static int[,] GetLabels(Image<Bgr, byte> img)
         {
             unsafe
             {
@@ -111,7 +111,7 @@ namespace SS_OpenCV
             }
         }
 
-        public static Dictionary<int, BoundingBox> getBoundingBoxes(int[,] labels, int height, int width)
+        public static Dictionary<int, BoundingBox> GetBoundingBoxes(int[,] labels, int height, int width)
         {
             Dictionary<int, BoundingBox> boundingBoxes = new Dictionary<int, BoundingBox>();
 
