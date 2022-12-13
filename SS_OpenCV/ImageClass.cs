@@ -1687,13 +1687,13 @@ namespace SS_OpenCV
             }
             else if (D1 > D2)
             {
-                diagonal.x = -DX2;
-                diagonal.y = -DY2;
+                diagonal.x = DY2;
+                diagonal.y = DX2;
             }
             else
             {
-                diagonal.x = DX1;
-                diagonal.y = -DY1;
+                diagonal.x = -DY1;
+                diagonal.y = -DX1;
             }
 
             Console.WriteLine("xv: " + diagonal.x + " yv: " + diagonal.y + "\n");
