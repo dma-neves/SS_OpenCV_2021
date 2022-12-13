@@ -1713,13 +1713,16 @@ namespace SS_OpenCV
             UR_y_out = 0;
             LL_x_out = 0;
             LL_y_out = 0;
-
+            
             unsafe
             {
                 MIplImage m = img.MIplImage;
                 int imgWidth = img.Width;
                 int imgHeight = img.Height;
-
+                //int DX1, DX2, DY1, DY2;
+                //int[] V = new int[2];
+                //double D1, D2;
+                
                 if (level == 1)
                 {
                     //ConvertToBW(img, 0);
@@ -1754,7 +1757,9 @@ namespace SS_OpenCV
                     {
                         Console.WriteLine("x: " + positioningBlocks[i].center_x + " y: " + positioningBlocks[i].center_y + "\n");
                     }
+
                 }
+                
             }
         }
     }
