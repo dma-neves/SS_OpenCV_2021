@@ -6,7 +6,6 @@ using Emgu.CV;
 using System.Drawing;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Windows;
 
 namespace SS_OpenCV
 {
@@ -1643,15 +1642,6 @@ namespace SS_OpenCV
             return positioningBlocks;
         }
 
-        public static double GetRotation(BoundingBox[] positioningBlocks)
-        {
-            double rot = 0.0;
-
-
-
-            return rot;
-        }
-
         private static int[] GetQRCodeLimits(byte[,] pixels, int imgHeight, int imgWidth)
         {
             int x, y;
@@ -1676,6 +1666,50 @@ namespace SS_OpenCV
             }
 
             return new int[] { left, right, top };
+        }
+
+        private static double GetRotationAngle(BoundingBox[] positioningBlocks)
+        {
+            double DX1,DX2,DY1, DY2, D1, D2;
+            Vector2D diagonal = new Vector2D { x = 0, y = 0 };
+
+            DX1 = Math.Abs(positioningBlocks[1].center_x - positioningBlocks[0].center_x);
+            DX2 = Math.Abs(positioningBlocks[2].center_x - positioningBlocks[0].center_x);
+            DY1 = Math.Abs(positioningBlocks[1].center_y - positioningBlocks[0].center_y);
+            DY2 = Math.Abs(positioningBlocks[2].center_y - positioningBlocks[0].center_y);
+            D1 = Math.Sqrt(DX1 * DX1 + DY1 * DY1);
+            D2 = Math.Sqrt(DX2 * DX2 + DY2 * DY2);
+
+            if (D1 == D2)
+            {
+                diagonal.x = DX1 + DX2;
+                diagonal.y = DY1 + DY2;
+            }
+            else if (D1 > D2)
+            {
+                diagonal.x = -DX2;
+                diagonal.y = -DY2;
+            }
+            else
+            {
+                diagonal.x = DX1;
+                diagonal.y = -DY1;
+            }
+
+            Console.WriteLine("xv: " + diagonal.x + " yv: " + diagonal.y + "\n");
+
+            /*
+            Vector2D a = new Vector2D { x = 2, y = 2 };
+            Vector2D b = new Vector2D { x = 2, y = 1 };
+            Vector2D c = new Vector2D { x = 1, y = 2 };
+
+            double angle_b = SSUtils.AngleFromV1ToV2(b, a);
+            double angle_c = SSUtils.AngleFromV1ToV2(c, a);
+            Console.WriteLine("angle B: " + angle_b as String);
+            Console.WriteLine("angle C: " + angle_c as String);
+            */
+
+            return SSUtils.AngleFromV1ToV2(diagonal, new Vector2D { x = 1, y = 1 });
         }
 
         /// <summary>
@@ -1758,6 +1792,7 @@ namespace SS_OpenCV
                         Console.WriteLine("x: " + positioningBlocks[i].center_x + " y: " + positioningBlocks[i].center_y + "\n");
                     }
 
+                    GetRotationAngle(positioningBlocks);
                 }
                 
             }
