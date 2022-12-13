@@ -52,6 +52,11 @@ namespace SS_OpenCV
         // represents the angle that rotates v1 to v2
         public static double AngleFromV1ToV2(Vector2D v1, Vector2D v2)
         {
+            if(v1.x/v2.x == v1.y/v2.y && v1.x * v2.x < 0)
+            {
+                return Math.PI;
+            }
+
             Vector3D cp = CrossProd(ToVector3D(Normalize(v1)), ToVector3D(Normalize(v2)));
             return Math.Asin(cp.z);
         }

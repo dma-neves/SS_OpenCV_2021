@@ -1673,30 +1673,30 @@ namespace SS_OpenCV
             double DX1,DX2,DY1, DY2, D1, D2;
             Vector2D diagonal = new Vector2D { x = 0, y = 0 };
 
-            DX1 = Math.Abs(positioningBlocks[1].center_x - positioningBlocks[0].center_x);
-            DX2 = Math.Abs(positioningBlocks[2].center_x - positioningBlocks[0].center_x);
-            DY1 = Math.Abs(positioningBlocks[1].center_y - positioningBlocks[0].center_y);
-            DY2 = Math.Abs(positioningBlocks[2].center_y - positioningBlocks[0].center_y);
+            DX1 = positioningBlocks[1].center_x - positioningBlocks[0].center_x;
+            DX2 = positioningBlocks[2].center_x - positioningBlocks[0].center_x;
+            DY1 = positioningBlocks[1].center_y - positioningBlocks[0].center_y;
+            DY2 = positioningBlocks[2].center_y - positioningBlocks[0].center_y;
             D1 = Math.Sqrt(DX1 * DX1 + DY1 * DY1);
             D2 = Math.Sqrt(DX2 * DX2 + DY2 * DY2);
 
-            if (D1 == D2)
+
+            if (Math.Abs(D1 - D2) < 4)
             {
                 diagonal.x = DX1 + DX2;
                 diagonal.y = DY1 + DY2;
             }
             else if (D1 > D2)
             {
-                diagonal.x = DY2;
-                diagonal.y = DX2;
+                diagonal.x = -DY1;
+                diagonal.y = DX1;
             }
             else
             {
-                diagonal.x = -DY1;
-                diagonal.y = -DX1;
+                diagonal.x = DY2;
+                diagonal.y = -DX2;
             }
-
-            Console.WriteLine("xv: " + diagonal.x + " yv: " + diagonal.y + "\n");
+            Console.WriteLine("X = " + diagonal.x + "Y =" + diagonal.y);
 
             /*
             Vector2D a = new Vector2D { x = 2, y = 2 };
@@ -1753,9 +1753,8 @@ namespace SS_OpenCV
                 MIplImage m = img.MIplImage;
                 int imgWidth = img.Width;
                 int imgHeight = img.Height;
-                //int DX1, DX2, DY1, DY2;
-                //int[] V = new int[2];
-                //double D1, D2;
+                double angle;
+
                 
                 if (level == 1)
                 {
@@ -1792,7 +1791,9 @@ namespace SS_OpenCV
                         Console.WriteLine("x: " + positioningBlocks[i].center_x + " y: " + positioningBlocks[i].center_y + "\n");
                     }
 
-                    GetRotationAngle(positioningBlocks);
+                    angle = GetRotationAngle(positioningBlocks);
+                    Console.WriteLine("A = " + angle + "rad");
+                    ImageClass.Rotation(img, imgCopy, (float)angle);
                 }
                 
             }
