@@ -41,10 +41,7 @@ namespace SS_OpenCV
         public static Vector2D Normalize(Vector2D v)
         {
             double n = Norm(v);
-            v.x /= n;
-            v.y /= n;
-
-            return v;
+            return new Vector2D() { x=v.x/n, y=v.y/n};
         }
 
         // Returns the smallest angle between v1 and v2, including the direction of rotation, represented by
@@ -53,12 +50,20 @@ namespace SS_OpenCV
         public static double AngleFromV1ToV2(Vector2D v1, Vector2D v2)
         {
             if(v1.x/v2.x == v1.y/v2.y && v1.x * v2.x < 0)
-            {
                 return Math.PI;
-            }
 
             Vector3D cp = CrossProd(ToVector3D(Normalize(v1)), ToVector3D(Normalize(v2)));
             return Math.Asin(cp.z);
+        }
+
+        public static Vector2D ScaleVector(Vector2D v, double scale)
+        {
+            return new Vector2D() { x=v.x*scale, y=v.y*scale };
+        }
+
+        public static Vector2D AddVectors(Vector2D v1, Vector2D v2)
+        {
+            return new Vector2D() { x=v1.x+v2.x, y=v1.y+v2.y };
         }
     }
 }

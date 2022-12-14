@@ -75,8 +75,11 @@ namespace SS_OpenCV
                 }
 
                 // TODO: use classic algorithm instead of iterative -> improve performance
-
+        
                 bool change = true;
+
+                var watch = new System.Diagnostics.Stopwatch();
+                watch.Start();
 
                 while (change)
                 {
@@ -106,6 +109,9 @@ namespace SS_OpenCV
                         }
                     }
                 }
+
+                watch.Stop();
+                Console.WriteLine($"Execution Time: {watch.ElapsedMilliseconds} ms");
 
                 return labels;
             }

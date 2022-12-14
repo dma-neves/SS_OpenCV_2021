@@ -14,6 +14,7 @@ namespace SS_OpenCV
 
         private static bool VERIFY = false;
         private static double COMPONENT_CENTER_DIST_MARGIN = 2.0;
+        private static double POSITIONING_BLOCKS_DIST_MARGIN = 2.0;
 
         /// <summary>
         /// Image Negative using EmguCV library
@@ -184,6 +185,14 @@ namespace SS_OpenCV
 
         public static void Rotation(Image<Bgr, byte> img, Image<Bgr, byte> imgCopy, float angle)
         {
+            MIplImage m = img.MIplImage;
+            double width_half = img.Width / 2.0;
+            double height_half = img.Height / 2.0;
+            RotationAroundPoint(img, imgCopy, angle, width_half, height_half);
+        }
+
+        public static void RotationAroundPoint(Image<Bgr, byte> img, Image<Bgr, byte> imgCopy, float angle, double rotPoint_x, double rotPoint_y)
+        {
             unsafe
             {
                 // direct access to the image memory(sequencial)
@@ -201,9 +210,6 @@ namespace SS_OpenCV
                 MIplImage mcopy = imgCopy.MIplImage;
                 byte* dataPtrCopy = (byte*)mcopy.ImageData.ToPointer();
 
-                double width_half = width / 2.0;
-                double height_half = height / 2.0;
-
                 double cos_theta = Math.Cos(angle);
                 double sin_theta = Math.Sin(angle);
 
@@ -215,8 +221,8 @@ namespace SS_OpenCV
                         {
                             // Get coordinates from source/origin image
                             // Note: change coordinate system's origin to perform rotation around the center of the image
-                            origin_x = (int)Math.Round((x - width_half) * cos_theta - (height_half - y) * sin_theta + width_half);
-                            origin_y = (int)Math.Round(height_half - (x - width_half) * sin_theta - (height_half - y) * cos_theta);
+                            origin_x = (int)Math.Round((x - rotPoint_x) * cos_theta - (rotPoint_y - y) * sin_theta + rotPoint_x);
+                            origin_y = (int)Math.Round(rotPoint_y - (x - rotPoint_x) * sin_theta - (rotPoint_y - y) * cos_theta);
 
                             if (origin_x >= 0 && origin_x < width && origin_y >= 0 && origin_y < height)
                             {
@@ -1381,7 +1387,6 @@ namespace SS_OpenCV
 
         public static void ConvertToBW(Emgu.CV.Image<Bgr, byte> img, int threshold)
         {
-
             unsafe
             {
                 // direct access to the image memory(sequencial)
@@ -1502,7 +1507,6 @@ namespace SS_OpenCV
 
         public static void ConvertToBW_Otsu(Emgu.CV.Image<Bgr, byte> img)
         {
-
             ConvertToBW(img, GetOtsuThreshold(img));
         }
 
@@ -1580,12 +1584,12 @@ namespace SS_OpenCV
                     )
                     {
                         if (ModeInSection(
-                            pixels, (int)(left + x * moduleSize),
+                            pixels, 
+                            (int)(left + x * moduleSize),
                             (int)(left + (x + 1) * moduleSize - 1),
                             (int)(top + y * moduleSize),
                             (int)(top + (y + 1) * moduleSize - 1)
-                            ) == 0
-                        )
+                        ) == 0)
                             sb.Append("1");
                         else
                             sb.Append("0");
@@ -1668,48 +1672,34 @@ namespace SS_OpenCV
             return new int[] { left, right, top };
         }
 
-        private static double GetRotationAngle(BoundingBox[] positioningBlocks)
+        private static Vector2D[] GetTopLeftAndDiagonalVector(BoundingBox[] positioningBlocks)
         {
-            double DX1,DX2,DY1, DY2, D1, D2;
+            double DX1, DX2, DY1, DY2, D1, D2;
             Vector2D diagonal = new Vector2D { x = 0, y = 0 };
+            Vector2D topLeft = new Vector2D { x = 0, y = 0 };
 
-            DX1 = positioningBlocks[1].center_x - positioningBlocks[0].center_x;
-            DX2 = positioningBlocks[2].center_x - positioningBlocks[0].center_x;
-            DY1 = positioningBlocks[1].center_y - positioningBlocks[0].center_y;
-            DY2 = positioningBlocks[2].center_y - positioningBlocks[0].center_y;
-            D1 = Math.Sqrt(DX1 * DX1 + DY1 * DY1);
-            D2 = Math.Sqrt(DX2 * DX2 + DY2 * DY2);
-
-
-            if (Math.Abs(D1 - D2) < 4)
+            for(int i = 0; i < 3; i++)
             {
-                diagonal.x = DX1 + DX2;
-                diagonal.y = DY1 + DY2;
-            }
-            else if (D1 > D2)
-            {
-                diagonal.x = -DY1;
-                diagonal.y = DX1;
-            }
-            else
-            {
-                diagonal.x = DY2;
-                diagonal.y = -DX2;
-            }
-            Console.WriteLine("X = " + diagonal.x + "Y =" + diagonal.y);
+                DX1 = positioningBlocks[(i + 1) % 3].center_x - positioningBlocks[i].center_x;
+                DY1 = positioningBlocks[(i + 1) % 3].center_y - positioningBlocks[i].center_y;
+                DX2 = positioningBlocks[(i + 2) % 3].center_x - positioningBlocks[i].center_x;
+                DY2 = positioningBlocks[(i + 2) % 3].center_y - positioningBlocks[i].center_y;
+                D1 = Math.Sqrt(DX1 * DX1 + DY1 * DY1);
+                D2 = Math.Sqrt(DX2 * DX2 + DY2 * DY2);
 
-            /*
-            Vector2D a = new Vector2D { x = 2, y = 2 };
-            Vector2D b = new Vector2D { x = 2, y = 1 };
-            Vector2D c = new Vector2D { x = 1, y = 2 };
+                if (Math.Abs(D1 - D2) < POSITIONING_BLOCKS_DIST_MARGIN)
+                {
+                    topLeft.x = positioningBlocks[i].center_x;
+                    topLeft.y = positioningBlocks[i].center_y;
 
-            double angle_b = SSUtils.AngleFromV1ToV2(b, a);
-            double angle_c = SSUtils.AngleFromV1ToV2(c, a);
-            Console.WriteLine("angle B: " + angle_b as String);
-            Console.WriteLine("angle C: " + angle_c as String);
-            */
+                    diagonal.x = DX1 + DX2;
+                    diagonal.y = DY1 + DY2;
 
-            return SSUtils.AngleFromV1ToV2(diagonal, new Vector2D { x = 1, y = 1 });
+                    return new Vector2D[] { topLeft, diagonal };
+                }
+            }
+
+            throw new Exception("Error: Couldn't find diagonal");
         }
 
         /// <summary>
@@ -1734,68 +1724,91 @@ namespace SS_OpenCV
             out int Center_x, out int Center_y, out int Width, out int Height, out float Rotation, out string BinaryOut,
             out int UL_x_out, out int UL_y_out, out int UR_x_out, out int UR_y_out, out int LL_x_out, out int LL_y_out)
         {
-            Center_x = 0;
-            Center_y = 0;
-            Width = 0;
-            Height = 0;
-            Rotation = 0;
-            BinaryOut = "";
-
-            UL_x_out = 0;
-            UL_y_out = 0;
-            UR_x_out = 0;
-            UR_y_out = 0;
-            LL_x_out = 0;
-            LL_y_out = 0;
-            
-            unsafe
+            try
             {
                 MIplImage m = img.MIplImage;
                 int imgWidth = img.Width;
                 int imgHeight = img.Height;
-                double angle;
 
-                
+                int left = 0, right = 0, top = 0;
+                byte[,] pixels = new byte[0, 0];
+
+
                 if (level == 1)
                 {
                     //ConvertToBW(img, 0);
-                    byte[,] pixels = ConvertToBinary(img);
+                    pixels = ConvertToBinary(img);
                     int[] qrCodeLimits = GetQRCodeLimits(pixels, imgHeight, imgWidth);
-                    int left = qrCodeLimits[0];
-                    int right = qrCodeLimits[1];
-                    int top = qrCodeLimits[2];
 
-                    Width = right - left + 1;
-                    Height = Width;
-                    double moduleSize = Width / 21.0;
-                    Center_x = left + Width / 2;
-                    Center_y = top + Height / 2;
-                    Rotation = 0;
-                    UL_x_out = left+3;
-                    UL_y_out = top+3;
-                    UR_x_out = right-3;
-                    UR_y_out = top+3;
-                    LL_x_out = left+3;
-                    LL_y_out = top + (Height - 1) - 3;
-                    BinaryOut = GetBinaryCode(pixels, moduleSize, left, top);
+                    left = qrCodeLimits[0];
+                    right = qrCodeLimits[1];
+                    top = qrCodeLimits[2];
                 }
-                else if(level == 2)
+                else if (level == 2 || level == 3)
                 {
+                    if (level == 3)
+                        ConvertToBW_Otsu(img);
+
                     int[,] labels = LinkedComponents.GetLabels(img);
                     // LinkedComponents.printLabels(labels, height, width);
                     Dictionary<int, BoundingBox> bboxes = LinkedComponents.GetBoundingBoxes(labels, imgHeight, imgWidth);
                     BoundingBox[] positioningBlocks = GetPositioningBlocks(bboxes);
-                    Console.WriteLine("PositioningBlocks:");
-                    for(int i = 0; i < 3; i++)
-                    {
-                        Console.WriteLine("x: " + positioningBlocks[i].center_x + " y: " + positioningBlocks[i].center_y + "\n");
-                    }
 
-                    angle = GetRotationAngle(positioningBlocks);
-                    Console.WriteLine("A = " + angle + "rad");
-                    ImageClass.Rotation(img, imgCopy, (float)angle);
+                    Vector2D[] res = GetTopLeftAndDiagonalVector(positioningBlocks);
+                    Vector2D topLeft = res[0];
+                    Vector2D diagonal = res[1];
+
+                    Vector2D qrCenter = SSUtils.AddVectors(topLeft, SSUtils.ScaleVector(diagonal, 0.5));
+                    double angle = SSUtils.AngleFromV1ToV2(diagonal, new Vector2D { x = 1, y = 1 });
+                    RotationAroundPoint(img, img.Copy(), (float)angle, qrCenter.x, qrCenter.y);
+                    Console.WriteLine("angle: " + angle);
+
+                    double positioningBlocksDistance = SSUtils.Norm(diagonal) / Math.Sqrt(2);
+                    Vector2D topLeftAfterRotation = SSUtils.AddVectors(
+                        qrCenter,
+                        new Vector2D() { x = -positioningBlocksDistance / 2.0, y = -positioningBlocksDistance / 2.0 }
+                    );
+
+                    pixels = ConvertToBinary(img);
+                    left = (int)(topLeftAfterRotation.x - 3.5 * (positioningBlocksDistance / 14.0));
+                    right = (int)(topLeftAfterRotation.x + 17.5 * (positioningBlocksDistance / 14.0));
+                    top = (int)(topLeftAfterRotation.y - 3.5 * (positioningBlocksDistance / 14.0));
                 }
-                
+
+                Width = right - left + 1;
+                Height = Width;
+                double moduleSize = Width / 21.0;
+                Center_x = left + Width / 2;
+                Center_y = top + Height / 2;
+                Rotation = 0;
+                UL_x_out = (int)(left + 3.5 * moduleSize);
+                UL_y_out = (int)(top + 3.5 * moduleSize);
+                UR_x_out = (int)(right - 3.5 * moduleSize);
+                UR_y_out = (int)(top + 3.5 * moduleSize);
+                LL_x_out = (int)(left + 3.5 * moduleSize);
+                LL_y_out = (int)(top + (Height - 1 * moduleSize) - 3.5 * moduleSize);
+                //BinaryOut = "";
+                if (left == 0 && right == 00)
+                    BinaryOut = "";
+                else
+                    BinaryOut = GetBinaryCode(pixels, moduleSize, left, top);
+
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.StackTrace);
+                Width = 0;
+                Height = 0;
+                Center_x = 0;
+                Center_y = 0;
+                Rotation = 0;
+                UL_x_out = 0;
+                UL_y_out = 0;
+                UR_x_out = 0;
+                UR_y_out = 0;
+                LL_x_out = 0;
+                LL_y_out = 0;
+                BinaryOut = "";
             }
         }
     }
