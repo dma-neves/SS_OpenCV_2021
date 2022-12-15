@@ -65,5 +65,13 @@ namespace SS_OpenCV
         {
             return new Vector2D() { x=v1.x+v2.x, y=v1.y+v2.y };
         }
+
+        public static Vector2D RotateVector(Vector2D v, double angle)
+        {
+            return new Vector2D() {
+                x = v.x * Math.Cos(angle) - v.y * Math.Sin(angle),
+                y = v.x * Math.Sin(angle) + v.y * Math.Cos(angle)
+            };
+        }
     }
 }

@@ -582,6 +582,28 @@ namespace SS_OpenCV
 
             Cursor = Cursors.Default; // normal cursor 
         }
+
+        private void rotationBiLinearToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (img == null) // verify if the image is already opened
+                return;
+            Cursor = Cursors.WaitCursor; // clock cursor 
+
+            //copy Undo Image
+            imgUndo = img.Copy();
+
+            InputBox ib = new InputBox("angle");
+            ib.ShowDialog();
+            float angle = (float)Convert.ToDouble(ib.ValueTextBox.Text);
+
+            ImageClass.Rotation_Bilinear(img, imgUndo, angle);
+
+
+            ImageViewer.Image = img;
+            ImageViewer.Refresh(); // refresh image on the screen
+
+            Cursor = Cursors.Default; // normal cursor 
+        }
     }
 
 

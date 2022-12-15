@@ -13,6 +13,7 @@ namespace SS_OpenCV
     {
 
         private static bool VERIFY = false;
+        private static bool DEBUG_QR_BINARY = false;
         private static double COMPONENT_CENTER_DIST_MARGIN = 2.0;
         private static double POSITIONING_BLOCKS_DIST_MARGIN = 2.0;
 
@@ -190,6 +191,90 @@ namespace SS_OpenCV
             double height_half = img.Height / 2.0;
             RotationAroundPoint(img, imgCopy, angle, width_half, height_half);
         }
+
+        public static void Rotation_Bilinear(Image<Bgr, byte> img, Image<Bgr, byte> imgCopy, float angle)
+        {
+            MIplImage m = img.MIplImage;
+            double width_half = img.Width / 2.0;
+            double height_half = img.Height / 2.0;
+            RotationAroundPoint_Bilinear(img, imgCopy, angle, width_half, height_half);
+        }
+
+        public static void RotationAroundPoint_Bilinear(Image<Bgr, byte> img, Image<Bgr, byte> imgCopy, float angle, double rotPoint_x, double rotPoint_y)
+        {
+            unsafe
+            {
+                // direct access to the image memory(sequencial)
+                // direcion top left -> bottom right
+
+                MIplImage m = img.MIplImage;
+                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+                int widthStep = m.WidthStep;
+                int width = img.Width;
+                int height = img.Height;
+                int nChan = m.NChannels; // number of channels - 3
+                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+                int x, y, c;
+                double origin_x, origin_y;
+                int j, k;
+                byte B_j_k, B_jp1_k, B_j_kp1, B_jp1_kp1;
+                byte B_jpx_k, B_jpx_kp1, B_jpx_kpy;
+
+                Image<Bgr, byte> imgPadded = getPaddedImg(img, 1);
+                MIplImage mpadded = imgPadded.MIplImage;
+                byte* dataBasePtrPadded = (byte*)mpadded.ImageData.ToPointer(); // Pointer to the image
+                int widthStepPadded = mpadded.WidthStep;
+
+                double cos_theta = Math.Cos(angle);
+                double sin_theta = Math.Sin(angle);
+
+                if (nChan == 3) // image in RGB
+                {
+                    for (y = 0; y < height; y++)
+                    {
+                        for (x = 0; x < width; x++)
+                        {
+                            // Get coordinates from source/origin image
+                            // Note: change coordinate system's origin to perform rotation around the center of the image
+                            origin_x = Math.Round((x - rotPoint_x) * cos_theta - (rotPoint_y - y) * sin_theta + rotPoint_x) + 1;
+                            origin_y = Math.Round(rotPoint_y - (x - rotPoint_x) * sin_theta - (rotPoint_y - y) * cos_theta) + 1;
+
+                            if (origin_x >= 0 && origin_x < width && origin_y >= 0 && origin_y < height)
+                            {
+                                // Bi-Linera interpolation
+                                for(c = 0; c < 3; c++)
+                                {
+                                    j = (int)origin_x;
+                                    k = (int)origin_y;
+                                    B_j_k = (dataBasePtrPadded + j * 3 + k * widthStepPadded)[c];
+                                    B_jp1_k = (dataBasePtrPadded + (j + 1) * 3 + k * widthStepPadded)[c];
+                                    B_j_kp1 = B_j_k = (dataBasePtrPadded + j * 3 + (k + 1) * widthStepPadded)[c];
+                                    B_jp1_kp1 = B_j_k = (dataBasePtrPadded + (j + 1) * 3 + (k + 1) * widthStepPadded)[c];
+
+                                    B_jpx_k = (byte)((1 - origin_x) * B_j_k + origin_x * B_jp1_k);
+                                    B_jpx_kp1 = (byte)((1 - origin_x) * B_j_kp1 + origin_x * B_jp1_kp1);
+                                    B_jpx_kpy = (byte)((1 - origin_y) * B_jpx_k + origin_y * B_jpx_kp1);
+                                    dataPtr[c] = B_jpx_kpy;
+                                }
+                            }
+                            else
+                            {
+                                dataPtr[0] = 0;
+                                dataPtr[1] = 0;
+                                dataPtr[2] = 0;
+                            }
+
+                            // advance the pointer to the next pixel
+                            dataPtr += nChan;
+                        }
+
+                        //at the end of the line advance the pointer by the aligment bytes (padding)
+                        dataPtr += padding;
+                    }
+                }
+            }
+        }
+
 
         public static void RotationAroundPoint(Image<Bgr, byte> img, Image<Bgr, byte> imgCopy, float angle, double rotPoint_x, double rotPoint_y)
         {
@@ -826,8 +911,6 @@ namespace SS_OpenCV
 
                     int[] prevSum = new int[3];
                     
-                    Console.WriteLine("YO");
-
                     for (y = 0; y < height; y++)
                     {
                         // For x = 0 calculate mean normally
@@ -858,8 +941,6 @@ namespace SS_OpenCV
                         dataPtrPadded += nChan;
 
                         // For x > 0 calculate mean using previous sum
-
-                        Console.WriteLine("YO");
 
                         for (x = 1; x < width; x++)
                         {
@@ -1570,35 +1651,77 @@ namespace SS_OpenCV
             return (byte)(oneCount > zeroCount ? 1 : 0);
         }
 
-        private static string GetBinaryCode(byte[,] pixels, double moduleSize, int left, int top)
+        private static string GetBinaryCode(byte[,] pixels, double moduleSize, int left, int top, Image<Bgr, byte> img)
         {
-            StringBuilder sb = new StringBuilder();
-            for (int y = 0; y < 21; y++)
-            {
-                for (int x = 0; x < 21; x++)
-                {
-                    if (
-                        !(x <= 7 && y <= 7) &&
-                        !(x <= 7 && y >= 13) &&
-                        !(x >= 13 && y <= 7)
-                    )
-                    {
-                        if (ModeInSection(
-                            pixels, 
-                            (int)(left + x * moduleSize),
-                            (int)(left + (x + 1) * moduleSize - 1),
-                            (int)(top + y * moduleSize),
-                            (int)(top + (y + 1) * moduleSize - 1)
-                        ) == 0)
-                            sb.Append("1");
-                        else
-                            sb.Append("0");
+            Console.WriteLine("moduleSize: " + moduleSize);
+            Console.WriteLine("left: " + left);
+            Console.WriteLine("top: " + top);
 
+            unsafe
+            {
+                MIplImage m = img.MIplImage;
+                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+
+                StringBuilder sb = new StringBuilder();
+                for (int y = 0; y < 21; y++)
+                {
+                    for (int x = 0; x < 21; x++)
+                    {
+                        if (
+                            !(x <= 7 && y <= 7) &&
+                            !(x <= 7 && y >= 13) &&
+                            !(x >= 13 && y <= 7)
+                        )
+                        {
+                            if (ModeInSection(
+                                pixels,
+                                (int)Math.Round(left + x * moduleSize),
+                                (int)Math.Round(left + (x + 1) * moduleSize - 1),
+                                (int)Math.Round(top + y * moduleSize),
+                                (int)Math.Round(top + (y + 1) * moduleSize - 1)
+                            ) == 0)
+                                sb.Append("1");
+                            else
+                                sb.Append("0");
+
+                            if (DEBUG_QR_BINARY)
+                            {
+                                string correct = "010110111011011010100010100001101011101111101111111101100010010111000110000110000111001011111010001011100011100011000101001010010111000010110100010010101100111011011010111110111001000110110111010110110001111010101010001010111100011110101000101001011";
+                                bool failed = false;
+                                if (sb[sb.Length - 1] != correct[sb.Length - 1])
+                                {
+                                    Console.WriteLine("Failed at x: " + x + " y: " + y);
+                                    Console.WriteLine("value: " + sb[sb.Length - 1]);
+                                    Console.WriteLine("");
+                                    failed = true;
+                                }
+
+                                byte* address = dataPtr + (
+                                    (int)Math.Round(top + y * moduleSize) * m.WidthStep +
+                                    (int)Math.Round(left + x * moduleSize) * 3
+                                ) ;
+
+                                if(failed)
+                                {
+                                    address[0] = 0;
+                                    address[1] = 0;
+                                    address[2] = 255;
+                                }
+                                else
+                                {
+                                    address[0] = 0;
+                                    address[1] = 255;
+                                    address[2] = 0;
+                                }
+
+                            }
+
+                        }
                     }
                 }
-            }
 
-            return sb.ToString();
+                return sb.ToString();
+            }
         }
 
         public static double GetCenterDist(BoundingBox bbox_a, BoundingBox bbox_b)
@@ -1643,6 +1766,7 @@ namespace SS_OpenCV
             if (idx != 3)
                 throw new Exception("Found less than 3 positioning blocks");
 
+
             return positioningBlocks;
         }
 
@@ -1671,12 +1795,29 @@ namespace SS_OpenCV
 
             return new int[] { left, right, top };
         }
+        
+        private static int[] CropImage(BoundingBox[] positioningBlocks, Image<Bgr, byte> img)
+        {
+            const int PADDING = 2;
 
-        private static Vector2D[] GetTopLeftAndDiagonalVector(BoundingBox[] positioningBlocks)
+            int left = Math.Min(Math.Min(positioningBlocks[0].left, positioningBlocks[1].left), positioningBlocks[2].left) - PADDING;
+            int right = Math.Max(Math.Max(positioningBlocks[0].right, positioningBlocks[1].right), positioningBlocks[2].right) + PADDING;
+            int top = Math.Min(Math.Min(positioningBlocks[0].top, positioningBlocks[1].top), positioningBlocks[2].top) - PADDING;
+            int bottom = Math.Max(Math.Max(positioningBlocks[0].bottom, positioningBlocks[1].bottom), positioningBlocks[2].bottom) + PADDING;
+
+            int longestDim = Math.Max((right - left), (bottom - top));
+
+            var roi = new Rectangle(left, top, longestDim, longestDim);
+            img.ROI = roi;
+
+            return new int[] { left, top };
+        }
+
+        private static Vector2D[] GetULAndDiagonalVector(BoundingBox[] positioningBlocks)
         {
             double DX1, DX2, DY1, DY2, D1, D2;
             Vector2D diagonal = new Vector2D { x = 0, y = 0 };
-            Vector2D topLeft = new Vector2D { x = 0, y = 0 };
+            Vector2D ul = new Vector2D { x = 0, y = 0 };
 
             for(int i = 0; i < 3; i++)
             {
@@ -1689,13 +1830,13 @@ namespace SS_OpenCV
 
                 if (Math.Abs(D1 - D2) < POSITIONING_BLOCKS_DIST_MARGIN)
                 {
-                    topLeft.x = positioningBlocks[i].center_x;
-                    topLeft.y = positioningBlocks[i].center_y;
+                    ul.x = positioningBlocks[i].center_x;
+                    ul.y = positioningBlocks[i].center_y;
 
                     diagonal.x = DX1 + DX2;
                     diagonal.y = DY1 + DY2;
 
-                    return new Vector2D[] { topLeft, diagonal };
+                    return new Vector2D[] { ul, diagonal };
                 }
             }
 
@@ -1724,56 +1865,33 @@ namespace SS_OpenCV
             out int Center_x, out int Center_y, out int Width, out int Height, out float Rotation, out string BinaryOut,
             out int UL_x_out, out int UL_y_out, out int UR_x_out, out int UR_y_out, out int LL_x_out, out int LL_y_out)
         {
-            try
+            Width = 0;
+            Height = 0;
+            Center_x = 0;
+            Center_y = 0;
+            Rotation = 0;
+            UL_x_out = 0;
+            UL_y_out = 0;
+            UR_x_out = 0;
+            UR_y_out = 0;
+            LL_x_out = 0;
+            LL_y_out = 0;
+            BinaryOut = "";
+
+            MIplImage m = img.MIplImage;
+            int imgWidth = img.Width;
+            int imgHeight = img.Height;
+
+            int left, top, right;
+
+            if (level == 1)
             {
-                MIplImage m = img.MIplImage;
-                int imgWidth = img.Width;
-                int imgHeight = img.Height;
+                byte[,] pixels = ConvertToBinary(img);
+                int[] qrCodeLimits = GetQRCodeLimits(pixels, imgHeight, imgWidth);
 
-                int left = 0, right = 0, top = 0;
-                byte[,] pixels = new byte[0, 0];
-
-
-                if (level == 1)
-                {
-                    //ConvertToBW(img, 0);
-                    pixels = ConvertToBinary(img);
-                    int[] qrCodeLimits = GetQRCodeLimits(pixels, imgHeight, imgWidth);
-
-                    left = qrCodeLimits[0];
-                    right = qrCodeLimits[1];
-                    top = qrCodeLimits[2];
-                }
-                else if (level == 2 || level == 3)
-                {
-                    if (level == 3)
-                        ConvertToBW_Otsu(img);
-
-                    int[,] labels = LinkedComponents.GetLabels(img);
-                    // LinkedComponents.printLabels(labels, height, width);
-                    Dictionary<int, BoundingBox> bboxes = LinkedComponents.GetBoundingBoxes(labels, imgHeight, imgWidth);
-                    BoundingBox[] positioningBlocks = GetPositioningBlocks(bboxes);
-
-                    Vector2D[] res = GetTopLeftAndDiagonalVector(positioningBlocks);
-                    Vector2D topLeft = res[0];
-                    Vector2D diagonal = res[1];
-
-                    Vector2D qrCenter = SSUtils.AddVectors(topLeft, SSUtils.ScaleVector(diagonal, 0.5));
-                    double angle = SSUtils.AngleFromV1ToV2(diagonal, new Vector2D { x = 1, y = 1 });
-                    RotationAroundPoint(img, img.Copy(), (float)angle, qrCenter.x, qrCenter.y);
-                    Console.WriteLine("angle: " + angle);
-
-                    double positioningBlocksDistance = SSUtils.Norm(diagonal) / Math.Sqrt(2);
-                    Vector2D topLeftAfterRotation = SSUtils.AddVectors(
-                        qrCenter,
-                        new Vector2D() { x = -positioningBlocksDistance / 2.0, y = -positioningBlocksDistance / 2.0 }
-                    );
-
-                    pixels = ConvertToBinary(img);
-                    left = (int)(topLeftAfterRotation.x - 3.5 * (positioningBlocksDistance / 14.0));
-                    right = (int)(topLeftAfterRotation.x + 17.5 * (positioningBlocksDistance / 14.0));
-                    top = (int)(topLeftAfterRotation.y - 3.5 * (positioningBlocksDistance / 14.0));
-                }
+                left = qrCodeLimits[0];
+                right = qrCodeLimits[1];
+                top = qrCodeLimits[2];
 
                 Width = right - left + 1;
                 Height = Width;
@@ -1787,28 +1905,68 @@ namespace SS_OpenCV
                 UR_y_out = (int)(top + 3.5 * moduleSize);
                 LL_x_out = (int)(left + 3.5 * moduleSize);
                 LL_y_out = (int)(top + (Height - 1 * moduleSize) - 3.5 * moduleSize);
-                //BinaryOut = "";
-                if (left == 0 && right == 00)
-                    BinaryOut = "";
-                else
-                    BinaryOut = GetBinaryCode(pixels, moduleSize, left, top);
-
+                BinaryOut = GetBinaryCode(pixels, moduleSize, left, top, img);
             }
-            catch(Exception e)
+            else if (level == 2 || level == 3 || level == 4)
             {
-                Console.WriteLine(e.StackTrace);
-                Width = 0;
-                Height = 0;
-                Center_x = 0;
-                Center_y = 0;
-                Rotation = 0;
-                UL_x_out = 0;
-                UL_y_out = 0;
-                UR_x_out = 0;
-                UR_y_out = 0;
-                LL_x_out = 0;
-                LL_y_out = 0;
-                BinaryOut = "";
+                if (level >= 3)
+                    ConvertToBW(img, 100); // threshold == 100 seems to work better than otsu (TODO: understand why)
+                                           //ConvertToBW_Otsu(img);
+
+                int[,] labels = LinkedComponents.GetLabelsClassic(img);
+                Dictionary<int, BoundingBox> bboxes = LinkedComponents.GetBoundingBoxes(labels, imgHeight, imgWidth);
+                BoundingBox[] positioningBlocks = GetPositioningBlocks(bboxes);
+
+                int[] cropRes = CropImage(positioningBlocks, img);
+                int cropLeft = cropRes[0];
+                int cropTop = cropRes[1];
+                var croppedImg = img.Copy(); // Emgu.CV bug: If we don't copy the image, the values for widthstep and padding result in illegal memory access
+                for (int i = 0; i < 3; i++)
+                {
+                    positioningBlocks[i].left -= cropLeft;
+                    positioningBlocks[i].right -= cropLeft;
+                    positioningBlocks[i].center_x -= cropLeft;
+                    positioningBlocks[i].bottom -= cropTop;
+                    positioningBlocks[i].top -= cropTop;
+                    positioningBlocks[i].center_y -= cropTop;
+                }
+
+                Vector2D[] res = GetULAndDiagonalVector(positioningBlocks);
+                Vector2D ul = res[0];
+                Vector2D diagonal = res[1];
+
+                Vector2D qrCenter = SSUtils.AddVectors(ul, SSUtils.ScaleVector(diagonal, 0.5));
+                double angle = SSUtils.AngleFromV1ToV2(diagonal, new Vector2D { x = 1, y = 1 });
+                RotationAroundPoint(croppedImg, croppedImg.Copy(), (float)angle, qrCenter.x, qrCenter.y);
+
+                double positioningBlocksDistance = SSUtils.Norm(diagonal) / Math.Sqrt(2);
+                Vector2D topLeftAfterRotation = SSUtils.AddVectors(
+                    qrCenter,
+                    new Vector2D() { x = -positioningBlocksDistance / 2.0, y = -positioningBlocksDistance / 2.0 }
+                );
+
+                left = (int)Math.Round(topLeftAfterRotation.x - 3.5 * positioningBlocksDistance / 14.0);
+                right = (int)Math.Round(topLeftAfterRotation.x + 17.5 * positioningBlocksDistance / 14.0);
+                top = (int)Math.Round(topLeftAfterRotation.y - 3.5 * positioningBlocksDistance / 14.0);
+
+                Vector2D rightVec = SSUtils.RotateVector(diagonal, Math.PI / 4.0);
+                Vector2D downVec = SSUtils.RotateVector(diagonal, - Math.PI / 4.0);
+
+                double moduleSize = positioningBlocksDistance / 14.0;
+                Width = (int)(moduleSize * 21.0);
+                Height = Width;
+                Center_x = (int)qrCenter.x + cropLeft;
+                Center_y = (int)qrCenter.y + cropTop;
+                Rotation = (float)(-angle*180.0/Math.PI);
+                UL_x_out = (int)(ul.x + cropLeft);
+                UL_y_out = (int)(ul.y + cropTop);
+                UR_x_out = (int)(UL_x_out + rightVec.x);
+                UR_y_out = (int)(UL_y_out + rightVec.y);
+                LL_x_out = (int)(UL_x_out + downVec.x);
+                LL_y_out = (int)(UL_y_out + downVec.y);
+                BinaryOut = GetBinaryCode(ConvertToBinary(croppedImg), moduleSize, left, top, croppedImg);
+
+                croppedImg.CopyTo(img); // Copy result image back to img
             }
         }
     }
