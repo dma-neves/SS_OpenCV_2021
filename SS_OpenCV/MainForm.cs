@@ -562,7 +562,7 @@ namespace SS_OpenCV
             int LL_x_out = 0;
             int LL_y_out = 0;
 
-            ImageClass.QRCodeReader(img, imgUndo, 4,
+            ImageClass.QRCodeReader(img, imgUndo, 5,
                 out Center_x,
                 out Center_y,
                 out Width,

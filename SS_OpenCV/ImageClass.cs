@@ -13,7 +13,7 @@ namespace SS_OpenCV
     {
 
         private static bool VERIFY = false;
-        private static bool DEBUG_QR_BINARY = true;
+        private static bool DEBUG_QR_BINARY = false;
         private static double COMPONENT_CENTER_DIST_MARGIN = 2.0;
         private static double POSITIONING_BLOCKS_DIST_MARGIN = 2.0;
 
@@ -2135,9 +2135,9 @@ namespace SS_OpenCV
 
                 if(qrpos.deformed)
                 {
-                    //double x_shear = qrpos.downVec.x;
-                    //Console.WriteLine("SHear: " + x_shear);
-                    //Shear(croppedImg, croppedImgCopy, (float)x_shear, 0);
+                    double x_shear = qrpos.downVec.x;
+                    Console.WriteLine("SHear: " + x_shear);
+                    Shear(croppedImg, croppedImgCopy, (float)x_shear, 0);
 
                     /*
                     qrpos.ul = SSUtils.ShearVector(qrpos.ul, x_shear, 0);

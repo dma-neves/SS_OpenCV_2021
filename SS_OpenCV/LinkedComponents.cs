@@ -85,10 +85,9 @@ namespace SS_OpenCV
                 {
                     for (x = 0; x < width; x++)
                     {
-                        label = labels[y, x];
-                        if (label != -1)
+                        int initialLabelValue = labels[y, x];
+                        if (initialLabelValue != -1)
                         {
-                            int minLabel = labels[y, x];
                             List<int> candidates = new List<int>();
                             for (int yoffset = (y == 0 ? 0 : -1); yoffset <= (y == height - 1 ? 0 : 1); yoffset++)
                             {
@@ -100,14 +99,11 @@ namespace SS_OpenCV
 
                                         if(neighbourLabel != -1)
                                         {
-                                            if (neighbourLabel < label && !candidates.Contains(neighbourLabel))
+                                            if (neighbourLabel < initialLabelValue && !candidates.Contains(neighbourLabel))
                                                 candidates.Add(neighbourLabel);
 
-                                            if (neighbourLabel < minLabel)
-                                            {
+                                            if (neighbourLabel < labels[y, x])
                                                 labels[y, x] = neighbourLabel;
-                                                minLabel = neighbourLabel;
-                                            }
                                         }
                                     }
                                 }
@@ -119,16 +115,7 @@ namespace SS_OpenCV
                     }
                 }
 
-                /*
-                for(int i = 0; i < adjacencies.Count; i++)
-                {
-                    for (int j = 0; j < adjacencies[i].Count; j++)
-                        Console.Write(adjacencies[i][j] + " - ");
-                    Console.WriteLine("");
-                }
-                */
-
-                //PrintLabels(labels, height, width);
+                // Compute transitive closure
 
                 for (int i = 0; i < adjacencies.Count; i++)
                 {
@@ -159,15 +146,7 @@ namespace SS_OpenCV
                     if (adjacencies[i].Count != 0)
                         transitiveClosure.Add(adjacencies[i]);
 
-                /*
-                Console.WriteLine("");
-                for (int i = 0; i < transitiveClosure.Count; i++)
-                {
-                    for (int j = 0; j < transitiveClosure[i].Count; j++)
-                        Console.Write(transitiveClosure[i][j] + " - ");
-                    Console.WriteLine("");
-                }
-                */
+                // Save replacements found in the transitive closure in a dictionary
 
                 Dictionary<int, int> replacements = new Dictionary<int, int>();
                 for (int i = 0; i < transitiveClosure.Count; i++)
@@ -184,11 +163,7 @@ namespace SS_OpenCV
                     }
                 }
 
-                /*
-                Console.WriteLine("");
-                foreach(var entry in replacements)
-                    Console.WriteLine(entry.Key + ": " + entry.Value);
-                */
+                // Apply replacements using the dictionary
 
                 for (y = 0; y < height; y++)
                 {
@@ -199,8 +174,6 @@ namespace SS_OpenCV
                             labels[y, x] = replacements[label];
                     }
                 }
-
-                //PrintLabels(labels, height, width);
 
                 watch.Stop();
                 Console.WriteLine($"Execution Time: {watch.ElapsedMilliseconds} ms");
