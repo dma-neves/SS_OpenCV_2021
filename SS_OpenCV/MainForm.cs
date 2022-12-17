@@ -562,7 +562,7 @@ namespace SS_OpenCV
             int LL_x_out = 0;
             int LL_y_out = 0;
 
-            ImageClass.QRCodeReader(img, imgUndo, 3,
+            ImageClass.QRCodeReader(img, imgUndo, 4,
                 out Center_x,
                 out Center_y,
                 out Width,
@@ -598,6 +598,49 @@ namespace SS_OpenCV
 
             ImageClass.Rotation_Bilinear(img, imgUndo, angle);
 
+
+            ImageViewer.Image = img;
+            ImageViewer.Refresh(); // refresh image on the screen
+
+            Cursor = Cursors.Default; // normal cursor 
+        }
+
+        private void compoundToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (img == null) // verify if the image is already opened
+                return;
+            Cursor = Cursors.WaitCursor; // clock cursor 
+
+            //copy Undo Image
+            imgUndo = img.Copy();
+
+            ImageClass.CompoundOperation(img);
+
+            ImageViewer.Image = img;
+            ImageViewer.Refresh(); // refresh image on the screen
+
+            Cursor = Cursors.Default; // normal cursor 
+        }
+
+        private void shearToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+            if (img == null) // verify if the image is already opened
+                return;
+            Cursor = Cursors.WaitCursor; // clock cursor 
+
+            //copy Undo Image
+            imgUndo = img.Copy();
+
+            InputBox ib = new InputBox("x shear");
+            ib.ShowDialog();
+            float x_shear = (float)Convert.ToDouble(ib.ValueTextBox.Text);
+
+            InputBox ib2 = new InputBox("y shear");
+            ib2.ShowDialog();
+            float y_shear = (float)Convert.ToDouble(ib2.ValueTextBox.Text);
+
+            ImageClass.Shear(img, imgUndo, x_shear, y_shear);
 
             ImageViewer.Image = img;
             ImageViewer.Refresh(); // refresh image on the screen

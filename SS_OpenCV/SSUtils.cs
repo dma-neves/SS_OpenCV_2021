@@ -11,26 +11,11 @@ namespace SS_OpenCV
         public double x, y;
     }
 
-    struct Vector3D
-    {
-        public double x, y, z;
-    }
-
     internal class SSUtils
     {
-        public static Vector3D CrossProd(Vector3D v1, Vector3D v2)
+        public static double CrossProd(Vector2D v1, Vector2D v2)
         {
-            Vector3D cp = new Vector3D { x=0,y=0,z=0};
-            cp.x = v1.y * v2.z - v1.z * v2.y;
-            cp.y = v1.z * v2.x - v1.x * v2.z;
-            cp.z = v1.x * v2.y - v1.y * v2.y;
-
-            return cp;
-        }
-
-        public static Vector3D ToVector3D(Vector2D v)
-        {
-            return new Vector3D { x = v.x, y = v.y, z = 0.0 };
+            return v1.x * v2.y - v1.y * v2.x;
         }
 
         public static double Norm(Vector2D v)
@@ -49,11 +34,15 @@ namespace SS_OpenCV
         // represents the angle that rotates v1 to v2
         public static double AngleFromV1ToV2(Vector2D v1, Vector2D v2)
         {
-            if(v1.x/v2.x == v1.y/v2.y && v1.x * v2.x < 0)
-                return Math.PI;
+            if((v1.x == 0 && v2.x == 0) || (v1.y == 0 && v2.y == 0) || v1.x/v2.x == v1.y/v2.y)
+            {
+                if (v1.x * v2.x < 0)
+                    return Math.PI;
+                else
+                    return 0;
+            }
 
-            Vector3D cp = CrossProd(ToVector3D(Normalize(v1)), ToVector3D(Normalize(v2)));
-            return Math.Asin(cp.z);
+            return Math.Asin(CrossProd((Normalize(v1)), (Normalize(v2))) );
         }
 
         public static Vector2D ScaleVector(Vector2D v, double scale)
@@ -71,6 +60,15 @@ namespace SS_OpenCV
             return new Vector2D() {
                 x = v.x * Math.Cos(angle) - v.y * Math.Sin(angle),
                 y = v.x * Math.Sin(angle) + v.y * Math.Cos(angle)
+            };
+        }
+
+        public static Vector2D ShearVector(Vector2D v, double x_shear, double y_shear)
+        {
+            return new Vector2D()
+            {
+                x = v.x + x_shear * v.y,
+                y = y_shear * v.x + v.y
             };
         }
     }
