@@ -647,6 +647,35 @@ namespace SS_OpenCV
 
             Cursor = Cursors.Default; // normal cursor 
         }
+
+        private void scaleAroundPointToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (img == null) // verify if the image is already opened
+                return;
+            Cursor = Cursors.WaitCursor; // clock cursor 
+
+            //copy Undo Image
+            imgUndo = img.Copy();
+
+            InputBox ib = new InputBox("Scale factor");
+            ib.ShowDialog();
+            float factor = (float)Convert.ToDouble(ib.ValueTextBox.Text);
+
+            ib = new InputBox("center x");
+            ib.ShowDialog();
+            int centerX = (int)Convert.ToDouble(ib.ValueTextBox.Text);
+
+            InputBox ib2 = new InputBox("center y");
+            ib2.ShowDialog();
+            int centerY = (int)Convert.ToDouble(ib2.ValueTextBox.Text);
+
+            ImageClass.Scale_point_xy(img, imgUndo, factor, centerX, centerY);
+
+            ImageViewer.Image = img;
+            ImageViewer.Refresh(); // refresh image on the screen
+
+            Cursor = Cursors.Default; // normal cursor 
+        }
     }
 
 
