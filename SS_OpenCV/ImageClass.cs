@@ -12,7 +12,7 @@ namespace SS_OpenCV
     class ImageClass
     {
         private static bool VERIFY = false;
-        private static bool DEBUG_QR_BINARY = true;
+        private static bool DEBUG_QR_BINARY = false;
         private static double COMPONENT_CENTER_DIST_MARGIN = 2.0;
         private static double POSITIONING_BLOCKS_DIST_MARGIN = 2.0;
 
@@ -1928,7 +1928,7 @@ namespace SS_OpenCV
             return (byte)(oneCount > zeroCount ? 1 : 0);
         }
 
-        private static string GetBinaryCode(byte[,] pixels, double moduleSize, int left, int top, Image<Bgr, byte> img)
+        private static string GetBinaryCode(byte[,] pixels, int left, int right, int top, int bottom, Image<Bgr, byte> img)
         {
             /*
             Console.WriteLine("moduleSize: " + moduleSize);
@@ -1954,10 +1954,10 @@ namespace SS_OpenCV
                         {
                             if (ModeInSection(
                                 pixels,
-                                (int)Math.Round(left + x * moduleSize),
-                                (int)Math.Round(left + (x + 1) * moduleSize - 1),
-                                (int)Math.Round(top + y * moduleSize),
-                                (int)Math.Round(top + (y + 1) * moduleSize - 1)
+                                (int)Math.Round(left + x * (right - left) / 21.0),
+                                (int)Math.Round(left + (x+1) * (right - left) / 21.0),
+                                (int)Math.Round(top + y * (bottom-top)/21.0),
+                                (int)Math.Round(top + (y+1) * (bottom - top) / 21.0)
                             ) == 0)
                                 sb.Append("1");
                             else
@@ -1965,7 +1965,7 @@ namespace SS_OpenCV
 
                             if (DEBUG_QR_BINARY)
                             {
-                                string correct = "010110111011011010100010100001101011101111101111111101100010010101001010000100111101111110110010101110001000000101000010101000110110110010010011111110100000111011000010010110111011010110010110001110001001001010100011110010111110010000111110111011001";
+                                string correct = "100011101011111101010111110101101010000011001110000010010111110010100001011100010110011011010011000111000011001110110010001010101010101100111011110011000001010111001110110111001101000110101111000010000111011011000011001010010111001100001001001100001";
                                 bool failed = false;
                                 if (sb[sb.Length - 1] != correct[sb.Length - 1])
                                 {
@@ -1976,11 +1976,11 @@ namespace SS_OpenCV
                                 }
 
                                 byte* address = dataPtr + (
-                                    (int)Math.Round(top + y * moduleSize) * m.WidthStep +
-                                    (int)Math.Round(left + x * moduleSize) * 3
-                                ) ;
+                                    (int)Math.Round(top + y * (bottom - top) / 21.0) * m.WidthStep +
+                                    (int)Math.Round(left + x * (right - left) / 21.0) * 3
+                                );
 
-                                if(failed)
+                                if (failed)
                                 {
                                     address[0] = 0;
                                     address[1] = 0;
@@ -2322,7 +2322,7 @@ namespace SS_OpenCV
             int imgHeight = img.Height;
             int imgWidthStep = m.WidthStep;
 
-            int left, top, right;
+            int left, top, right, bottom;
 
             if (level == 1)
             {
@@ -2332,6 +2332,7 @@ namespace SS_OpenCV
                 left = qrCodeLimits[0];
                 right = qrCodeLimits[1];
                 top = qrCodeLimits[2];
+                bottom = top + (right - left);
 
                 Width = right - left + 1;
                 Height = Width;
@@ -2345,7 +2346,7 @@ namespace SS_OpenCV
                 UR_y_out = (int)(top + 3.5 * moduleSize);
                 LL_x_out = (int)(left + 3.5 * moduleSize);
                 LL_y_out = (int)(top + (Height - 1 * moduleSize) - 3.5 * moduleSize);
-                BinaryOut = GetBinaryCode(pixels, moduleSize, left, top, img);
+                BinaryOut = GetBinaryCode(pixels, left, right, top, bottom, img);
             }
             else if (level == 2 || level == 3 || level == 4 || level == 5)
             {
@@ -2425,7 +2426,8 @@ namespace SS_OpenCV
 
                 left = (int)Math.Round(qrposTransformed.ul.x - 3.5 * moduleSize);
                 right = (int)Math.Round(qrposTransformed.ul.x + 17.5 * moduleSize);
-                top = (int)Math.Round(qrposTransformed.ul.y - 3.45 * moduleSize);
+                top = (int)Math.Round(qrposTransformed.ul.y - 3.5 * moduleSize);
+                bottom = (int)Math.Round(qrposTransformed.ll.y + 3.5 * moduleSize);
 
                 Console.WriteLine("moduleSize: " + moduleSize);
                 Console.WriteLine("left: " + left);
@@ -2442,7 +2444,7 @@ namespace SS_OpenCV
                 UR_y_out = (int)(qrpos.ur.y);
                 LL_x_out = (int)(qrpos.ll.x);
                 LL_y_out = (int)(qrpos.ll.y);
-                BinaryOut = GetBinaryCode(ConvertToBinary(img), moduleSize, left, top, img);
+                BinaryOut = GetBinaryCode(ConvertToBinary(img), left, right, top, bottom, img);
             }
         }
     }
