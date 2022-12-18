@@ -55,11 +55,42 @@ namespace SS_OpenCV
             return new Vector2D() { x=v1.x+v2.x, y=v1.y+v2.y };
         }
 
+        public static Vector2D SubVectors(Vector2D v1, Vector2D v2)
+        {
+            return new Vector2D() { x = v1.x - v2.x, y = v1.y - v2.y };
+        }
+
         public static Vector2D RotateVector(Vector2D v, double angle)
         {
             return new Vector2D() {
                 x = v.x * Math.Cos(angle) - v.y * Math.Sin(angle),
                 y = v.x * Math.Sin(angle) + v.y * Math.Cos(angle)
+            };
+        }
+
+        public static Vector2D RotateVectorAroundPoint(Vector2D v, double angle, Vector2D center)
+        {
+            double sin = Math.Sin(angle);
+            double cos = Math.Cos(angle);
+
+            // translate point back to origin:
+            double x = v.x - center.x;
+            double y = v.y - center.y;
+
+            // rotate point
+            double xnew = x * cos - y * sin;
+            double ynew = x * sin + y * cos;
+
+            // translate point back:
+            x = xnew + center.x;
+            y = ynew + center.y;
+
+            return new Vector2D()
+            {
+                x = x,
+                y = y
+                //x = ((v.x - center.x) * Math.Cos(angle)) - ((center.y - v.y) * Math.Sin(angle)) + center.x,
+                //y = center.y - ((center.y - v.y) * Math.Cos(angle)) + ((v.x - center.x) * Math.Sin(angle))
             };
         }
 

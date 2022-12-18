@@ -268,9 +268,9 @@ namespace SS_OpenCV
                     {
                         for (x = 0; x < width; x++)
                         {
-                            // Get coordinates from source/origin image
-                            origin_x = ((x - rotPoint_x) * cos_theta - (rotPoint_y - y) * sin_theta + rotPoint_x) + 1.0;
-                            origin_y = (rotPoint_y - (x - rotPoint_x) * sin_theta - (rotPoint_y - y) * cos_theta) + 1.0;
+                            origin_x = (int)Math.Round((x - rotPoint_x) * cos_theta - (rotPoint_y - y) * sin_theta + rotPoint_x);
+                            origin_y = (int)Math.Round(rotPoint_y - (x - rotPoint_x) * sin_theta - (rotPoint_y - y) * cos_theta);
+
                             j = (int)origin_x;
                             k = (int)origin_y;
                             offset_x = origin_x - j;
@@ -345,8 +345,6 @@ namespace SS_OpenCV
                     {
                         for (x = 0; x < width; x++)
                         {
-                            // Get coordinates from source/origin image
-                            // Note: change coordinate system's origin to perform rotation around the center of the image
                             origin_x = (int)Math.Round((x - rotPoint_x) * cos_theta - (rotPoint_y - y) * sin_theta + rotPoint_x);
                             origin_y = (int)Math.Round(rotPoint_y - (x - rotPoint_x) * sin_theta - (rotPoint_y - y) * cos_theta);
 
@@ -1965,7 +1963,7 @@ namespace SS_OpenCV
 
                             if (DEBUG_QR_BINARY)
                             {
-                                string correct = "010110111011011010100010100001101011101111101111111101100010010101001010000100111101111110110010101110001000000101000010101000110110110010010011111110100000111011000010010110111011010110010110001110001001001010100011110010111110010000111110111011001";
+                                string correct = "100011101011111101010111110101101010000011001110000010010111110100101111011111001010101010001011101001000001100011110001001110011110110101100101110111000101010111001010110100001101000010101111110100010111011111001011001100010011000100001001001100001";
                                 bool failed = false;
                                 if (sb[sb.Length - 1] != correct[sb.Length - 1])
                                 {
@@ -2095,9 +2093,13 @@ namespace SS_OpenCV
         private struct QRPos
         {
             public Vector2D ul;
+            public Vector2D ur;
+            public Vector2D ll;
+            public Vector2D lr;
             public Vector2D rightVec;
             public Vector2D downVec;
             public Vector2D diagonalVec;
+            public Vector2D center;
             public bool deformed;
         }
 
@@ -2127,12 +2129,28 @@ namespace SS_OpenCV
 
                 if (Math.Abs(SSUtils.Norm(v1) - SSUtils.Norm(v2)) < margin)
                 {
+                    Vector2D diagonalVec = SSUtils.AddVectors(v1, v2);
                     Vector2D ul = new Vector2D { x = positioningBlocks[i].center_x, y = positioningBlocks[i].center_y };
+                    Vector2D center = SSUtils.AddVectors(ul, SSUtils.ScaleVector(diagonalVec, 0.5));
+                    Vector2D rightVec;
+                    Vector2D downVec;
 
-                    if (SSUtils.CrossProd(v1,v2) > 0)
-                        return new QRPos { ul = ul, rightVec = v1, downVec = v2, diagonalVec = SSUtils.AddVectors(v1,v2), deformed = deformed };
+                    if (SSUtils.CrossProd(v1, v2) > 0)
+                    {
+                        rightVec = v1;
+                        downVec = v2;
+                    }
                     else
-                        return new QRPos { ul = ul, rightVec = v2, downVec = v1, diagonalVec = SSUtils.AddVectors(v1, v2), deformed = deformed };
+                    {
+                        rightVec = v1;
+                        downVec = v2;
+                    }
+
+                    Vector2D ur = SSUtils.AddVectors(ul, rightVec);
+                    Vector2D ll = SSUtils.AddVectors(ul, downVec);
+                    Vector2D lr = SSUtils.AddVectors(ll, rightVec);
+
+                    return new QRPos { ul = ul, ur = ur, ll = ll, lr = lr, rightVec = rightVec, downVec = downVec, diagonalVec = diagonalVec, center = center, deformed = deformed };
                 }
             }
 
@@ -2365,53 +2383,67 @@ namespace SS_OpenCV
                 */
 
                 QRPos qrpos = GetQRPositioning(positioningBlocks);
+                QRPos qrposTransformed = qrpos;
 
-                Vector2D qrCenter = SSUtils.AddVectors(qrpos.ul, SSUtils.ScaleVector(qrpos.diagonalVec, 0.5));
                 double angle = SSUtils.AngleFromV1ToV2(qrpos.rightVec, new Vector2D { x = 1, y = 0 });
-                RotationAroundPoint(img, img.Copy(), (float)angle, qrCenter.x, qrCenter.y);
+                RotationAroundPoint(img, img.Copy(), (float)angle, qrpos.center.x, qrpos.center.y);
 
-                if(qrpos.deformed)
+                Console.WriteLine("qrpos.center.x " + qrpos.center.x);
+                Console.WriteLine("qrpos.center.y " + qrpos.center.y);
+                Console.WriteLine("qrpos.ul.x " + qrpos.ul.x);
+                Console.WriteLine("qrpos.ul.y " + qrpos.ul.y);
+                Console.WriteLine("Angle: " + angle);
+                qrposTransformed.ul = SSUtils.RotateVectorAroundPoint(qrpos.ul, angle, qrpos.center);
+                Console.WriteLine("qrposTransformed.ul.x " + qrposTransformed.ul.x);
+                Console.WriteLine("qrposTransformed.ul.y " + qrposTransformed.ul.y);
+
+                qrposTransformed.ur = SSUtils.RotateVectorAroundPoint(qrpos.ur, angle, qrpos.center);
+                qrposTransformed.ll = SSUtils.RotateVectorAroundPoint(qrpos.ll, angle, qrpos.center);
+                qrposTransformed.lr = SSUtils.RotateVectorAroundPoint(qrpos.lr, angle, qrpos.center);
+                qrposTransformed.rightVec = SSUtils.SubVectors(qrposTransformed.ur, qrposTransformed.ul);
+                qrposTransformed.downVec = SSUtils.SubVectors(qrposTransformed.ll, qrposTransformed.ul);
+                qrposTransformed.diagonalVec = SSUtils.SubVectors(qrposTransformed.lr, qrposTransformed.ul);
+                //qrposTransformed.center = qrposTransformed.center;
+
+                if (qrpos.deformed)
                 {
-                    Vector2D downVecAfterRotation = SSUtils.RotateVector(qrpos.downVec, angle);
-                    double x_shear = -downVecAfterRotation.x / downVecAfterRotation.y;
+                    double x_shear = -qrposTransformed.downVec.x / qrposTransformed.downVec.y;
                     Shear(img, img.Copy(), (float)x_shear, 0);
 
-                    qrpos.ul = SSUtils.ShearVector(qrpos.ul, x_shear, 0);
-                    qrpos.rightVec = SSUtils.ShearVector(qrpos.rightVec, x_shear, 0);
-                    qrpos.downVec = SSUtils.ShearVector(qrpos.downVec, x_shear, 0);
-                    qrpos.diagonalVec = SSUtils.ShearVector(qrpos.diagonalVec, x_shear, 0);
-                    qrCenter = SSUtils.ShearVector(qrCenter, x_shear, 0);
+                    qrposTransformed.ul = SSUtils.ShearVector(qrpos.ul, x_shear, 0);
+                    qrposTransformed.ur = SSUtils.ShearVector(qrpos.ur, x_shear, 0);
+                    qrposTransformed.ll = SSUtils.ShearVector(qrpos.ll, x_shear, 0);
+                    qrposTransformed.lr = SSUtils.ShearVector(qrpos.lr, x_shear, 0);
+                    qrposTransformed.rightVec = SSUtils.SubVectors(qrposTransformed.ur, qrposTransformed.ul);
+                    qrposTransformed.downVec = SSUtils.SubVectors(qrposTransformed.ll, qrposTransformed.ul);
+                    qrposTransformed.diagonalVec = SSUtils.SubVectors(qrposTransformed.lr, qrposTransformed.ul);
+                    //qrposTransformed.center = ...;
+
                 }
 
-                double positioningBlocksDistance = SSUtils.Norm(qrpos.rightVec);
-                Vector2D topLeftAfterRotation = SSUtils.AddVectors(
-                    qrCenter,
-                    new Vector2D() { x = -positioningBlocksDistance / 2.0, y = -positioningBlocksDistance / 2.0 }
-                );
-
-                left = (int)Math.Round(topLeftAfterRotation.x - 3.5 * positioningBlocksDistance / 14.0);
-                right = (int)Math.Round(topLeftAfterRotation.x + 17.5 * positioningBlocksDistance / 14.0);
-                top = (int)Math.Round(topLeftAfterRotation.y - 3.45 * positioningBlocksDistance / 14.0);
-
-                //Console.WriteLine("topLeftAfterRotation.y" + topLeftAfterRotation.y);
-
+                double positioningBlocksDistance = SSUtils.Norm(qrposTransformed.rightVec);
                 double moduleSize = positioningBlocksDistance / 14.0;
+
+                left = (int)Math.Round(qrposTransformed.ul.x - 3.5 * moduleSize);
+                right = (int)Math.Round(qrposTransformed.ul.x + 17.5 * moduleSize);
+                top = (int)Math.Round(qrposTransformed.ul.y - 3.5 * moduleSize);
+
+                Console.WriteLine("moduleSize: " + moduleSize);
+                Console.WriteLine("left: " + left);
+                Console.WriteLine("top: " + top);
+
                 Width = (int)(moduleSize * 21.0);
                 Height = Width;
-                //Center_x = (int)qrCenter.x + cropLeft;
-                //Center_y = (int)qrCenter.y + cropTop;
-                Center_x = (int)qrCenter.x;
-                Center_y = (int)qrCenter.y;
+                Center_x = (int)qrpos.center.x;
+                Center_y = (int)qrpos.center.y;
                 Rotation = (float)(-angle*180.0/Math.PI);
-                //UL_x_out = (int)(qrpos.ul.x + cropLeft);
-                //UL_y_out = (int)(qrpos.ul.y + cropTop);
                 UL_x_out = (int)(qrpos.ul.x);
                 UL_y_out = (int)(qrpos.ul.y);
-                UR_x_out = (int)(UL_x_out + qrpos.rightVec.x);
-                UR_y_out = (int)(UL_y_out + qrpos.rightVec.y);
-                LL_x_out = (int)(UL_x_out + qrpos.downVec.x);
-                LL_y_out = (int)(UL_y_out + qrpos.downVec.y);
-                BinaryOut = GetBinaryCode(ConvertToBinary(img), moduleSize, left, top, img);
+                UR_x_out = (int)(qrpos.ur.x);
+                UR_y_out = (int)(qrpos.ur.y);
+                LL_x_out = (int)(qrpos.ll.x);
+                LL_y_out = (int)(qrpos.ll.y);
+                //BinaryOut = GetBinaryCode(ConvertToBinary(img), moduleSize, left, top, img);
             }
         }
     }
