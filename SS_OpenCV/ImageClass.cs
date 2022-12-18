@@ -12,7 +12,7 @@ namespace SS_OpenCV
     class ImageClass
     {
         private static bool VERIFY = false;
-        private static bool DEBUG_QR_BINARY = false;
+        private static bool DEBUG_QR_BINARY = true;
         private static double COMPONENT_CENTER_DIST_MARGIN = 2.0;
         private static double POSITIONING_BLOCKS_DIST_MARGIN = 2.0;
 
@@ -1914,9 +1914,9 @@ namespace SS_OpenCV
             int zeroCount = 0;
             int oneCount = 0;
 
-            for (int y = top; y <= bottom; y++)
+            for (int y = top+1; y < bottom; y++)
             {
-                for(int x = left; x <= right; x++)
+                for(int x = left+1; x < right; x++)
                 {
                     if (pixels[y, x] == 1)
                         oneCount++;
@@ -1965,7 +1965,7 @@ namespace SS_OpenCV
 
                             if (DEBUG_QR_BINARY)
                             {
-                                string correct = "100011101011111101010111110101101010000011001110000010010111110010100001011100010110011011010011000111000011001110110010001010101010101100111011110011000001010111001110110111001101000110101111000010000111011011000011001010010111001100001001001100001";
+                                string correct = "101110011011010110011001001111101010001111110010111111001110100100100011110001011110100111010100100010101001100110101001000100110110111011110100010110111110100101100011110000000010011000101010001001001001100010101010110010011100100010011100010011100";
                                 bool failed = false;
                                 if (sb[sb.Length - 1] != correct[sb.Length - 1])
                                 {
@@ -2324,6 +2324,9 @@ namespace SS_OpenCV
 
             int left, top, right, bottom;
 
+            var watch = new System.Diagnostics.Stopwatch();
+            watch.Start();
+
             if (level == 1)
             {
                 byte[,] pixels = ConvertToBinary(img);
@@ -2414,11 +2417,6 @@ namespace SS_OpenCV
                     qrposTransformed.downVec = SSUtils.SubVectors(qrposTransformed.ll, qrposTransformed.ul);
                     qrposTransformed.diagonalVec = SSUtils.SubVectors(qrposTransformed.lr, qrposTransformed.ul);
                     //qrposTransformed.center = ...;
-
-                    Console.WriteLine("rightVec.ul.x: " + qrposTransformed.rightVec.x);
-                    Console.WriteLine("rightVec.ul.y: " + qrposTransformed.rightVec.y);
-                    Console.WriteLine("downVec.ur.x: " + qrposTransformed.downVec.x);
-                    Console.WriteLine("downVec.ur.y: " + qrposTransformed.downVec.y);
                 }
 
                 double positioningBlocksDistance = SSUtils.Norm(qrposTransformed.rightVec);
@@ -2428,10 +2426,6 @@ namespace SS_OpenCV
                 right = (int)Math.Round(qrposTransformed.ul.x + 17.5 * moduleSize);
                 top = (int)Math.Round(qrposTransformed.ul.y - 3.5 * moduleSize);
                 bottom = (int)Math.Round(qrposTransformed.ll.y + 3.5 * moduleSize);
-
-                Console.WriteLine("moduleSize: " + moduleSize);
-                Console.WriteLine("left: " + left);
-                Console.WriteLine("top: " + top);
 
                 Width = (int)(moduleSize * 21.0);
                 Height = Width;
@@ -2446,6 +2440,9 @@ namespace SS_OpenCV
                 LL_y_out = (int)(qrpos.ll.y);
                 BinaryOut = GetBinaryCode(ConvertToBinary(img), left, right, top, bottom, img);
             }
+
+            watch.Stop();
+            Console.WriteLine($"Execution Time: {watch.ElapsedMilliseconds} ms");
         }
     }
 }

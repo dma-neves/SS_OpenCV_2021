@@ -85,13 +85,7 @@ namespace SS_OpenCV
             x = xnew + center.x;
             y = ynew + center.y;
 
-            return new Vector2D()
-            {
-                x = x,
-                y = y
-                //x = ((v.x - center.x) * Math.Cos(angle)) - ((center.y - v.y) * Math.Sin(angle)) + center.x,
-                //y = center.y - ((center.y - v.y) * Math.Cos(angle)) + ((v.x - center.x) * Math.Sin(angle))
-            };
+            return new Vector2D() { x = x, y = y };
         }
 
         public static Vector2D ShearVector(Vector2D v, double x_shear, double y_shear)
