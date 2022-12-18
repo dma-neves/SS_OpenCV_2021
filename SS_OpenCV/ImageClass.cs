@@ -288,8 +288,8 @@ namespace SS_OpenCV
                                     else
                                     {
                                         B_jp1_k = (dataBasePtrPadded + (j + 1) * 3 + k * widthStepPadded)[c];
-                                        B_j_kp1 = B_j_k = (dataBasePtrPadded + j * 3 + (k + 1) * widthStepPadded)[c];
-                                        B_jp1_kp1 = B_j_k = (dataBasePtrPadded + (j + 1) * 3 + (k + 1) * widthStepPadded)[c];
+                                        B_j_kp1 = (dataBasePtrPadded + j * 3 + (k + 1) * widthStepPadded)[c];
+                                        B_jp1_kp1 = (dataBasePtrPadded + (j + 1) * 3 + (k + 1) * widthStepPadded)[c];
 
                                         B_jpx_k = (int)((1.0 - offset_x) * B_j_k + offset_x * B_jp1_k);
                                         B_jpx_kp1 = (int)((1.0 - offset_x) * B_j_kp1 + offset_x * B_jp1_kp1);
@@ -500,8 +500,8 @@ namespace SS_OpenCV
                                     else
                                     {
                                         B_jp1_k = (dataBasePtrPadded + (j + 1) * 3 + k * widthStepPadded)[c];
-                                        B_j_kp1 = B_j_k = (dataBasePtrPadded + j * 3 + (k + 1) * widthStepPadded)[c];
-                                        B_jp1_kp1 = B_j_k = (dataBasePtrPadded + (j + 1) * 3 + (k + 1) * widthStepPadded)[c];
+                                        B_j_kp1 = (dataBasePtrPadded + j * 3 + (k + 1) * widthStepPadded)[c];
+                                        B_jp1_kp1 = (dataBasePtrPadded + (j + 1) * 3 + (k + 1) * widthStepPadded)[c];
 
                                         B_jpx_k = (int)((1.0 - offset_x) * B_j_k + offset_x * B_jp1_k);
                                         B_jpx_kp1 = (int)((1.0 - offset_x) * B_j_kp1 + offset_x * B_jp1_kp1);
