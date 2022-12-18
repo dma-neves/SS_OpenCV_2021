@@ -12,7 +12,7 @@ namespace SS_OpenCV
     class ImageClass
     {
         private static bool VERIFY = false;
-        private static bool DEBUG_QR_BINARY = true;
+        private static bool DEBUG_QR_BINARY = false;
         private static double COMPONENT_CENTER_DIST_MARGIN = 2.0;
         private static double POSITIONING_BLOCKS_DIST_MARGIN = 2.0;
 
@@ -1868,7 +1868,127 @@ namespace SS_OpenCV
             ConvertToBW(img, GetOtsuThreshold(img));
         }
 
-        //                                                         |                           |
+        private static void Dilation(Image<Bgr, byte> img, byte[,] pixels, int[,] mask)
+        {
+            unsafe
+            {
+                MIplImage m = img.MIplImage;
+                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+                int widthStep = m.WidthStep;
+                int width = img.Width;
+                int height = img.Height;
+                int nChan = m.NChannels; // number of channels - 3
+                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+                int x, y;
+
+                if (nChan == 3) // image in RGB
+                {
+                    for (y = 0; y < height; y++)
+                    {
+                        for (x = 0; x < width; x++)
+                        {
+                            bool intersection = false;
+                            for (int y_offset = (y == 0 ? 0 : -1); y_offset <= (y == height - 1 ? 0 : 1); y_offset++)
+                            {
+                                for (int x_offset = (x == 0 ? 0 : -1); x_offset <= (x == width - 1 ? 0 : 1); x_offset++)
+                                {
+                                    int maskVal = mask[1 + y_offset, 1 + x_offset];
+                                    if (maskVal == -1) continue;
+                                    if (pixels[y + y_offset, x + x_offset] == maskVal)
+                                    {
+                                        intersection = true;
+                                        goto maskIterationFinished;
+                                    }
+                                }
+                            }
+                        maskIterationFinished:
+
+                            if (intersection)
+                            {
+                                dataPtr[0] = 0;
+                                dataPtr[1] = 0;
+                                dataPtr[2] = 0;
+                            }
+
+                            // advance the pointer to the next pixel
+                            dataPtr += nChan;
+                        }
+
+                        //at the end of the line advance the pointer by the aligment bytes (padding)
+                        dataPtr += padding;
+                    }
+                }
+            }
+        }
+
+        private static void Erosion(Image<Bgr, byte> img, byte[,] pixels, int[,] mask)
+        {
+            unsafe
+            {
+                MIplImage m = img.MIplImage;
+                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+                int widthStep = m.WidthStep;
+                int width = img.Width;
+                int height = img.Height;
+                int nChan = m.NChannels; // number of channels - 3
+                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+                int x, y;
+
+                if (nChan == 3) // image in RGB
+                {
+                    for (y = 0; y < height; y++)
+                    {
+                        for (x = 0; x < width; x++)
+                        {
+                            bool diff = false;
+                            for (int y_offset = (y == 0 ? 0 : -1); y_offset <= (y == height - 1 ? 0 : 1); y_offset++)
+                            {
+                                for (int x_offset = (x == 0 ? 0 : -1); x_offset <= (x == width - 1 ? 0 : 1); x_offset++)
+                                {
+                                    int maskVal = mask[1 + y_offset, 1 + x_offset];
+                                    if (maskVal == -1) continue;
+                                    if (pixels[y + y_offset, x + x_offset] != maskVal)
+                                    {
+                                        diff = true;
+                                        goto maskIterationFinished;
+                                    }
+                                }
+                            }
+                        maskIterationFinished:
+
+                            if (diff)
+                            {
+                                dataPtr[0] = 255;
+                                dataPtr[1] = 255;
+                                dataPtr[2] = 255;
+                            }
+
+                            // advance the pointer to the next pixel
+                            dataPtr += nChan;
+                        }
+
+                        //at the end of the line advance the pointer by the aligment bytes (padding)
+                        dataPtr += padding;
+                    }
+                }
+            }
+        }
+
+        public static void CompoundOperation(Image<Bgr, byte> img)
+        {
+            int[,] mask1 = {
+
+                {0,0,0},
+                {0,0,0},
+                {0,0,0}
+            };
+
+            byte[,] pixels = ConvertToBinary(img);
+
+            Erosion(img, pixels, mask1);
+            Dilation(img, pixels, mask1);
+        }
+
         // ####################################################### V QR Code related functions V #######################################################
 
         public static byte[,] ConvertToBinary(Emgu.CV.Image<Bgr, byte> img)
@@ -2161,126 +2281,7 @@ namespace SS_OpenCV
             //throw new Exception("Error: Couldn't find diagonal");
         }
 
-        private static void Dilation(Image<Bgr, byte> img, byte[,] pixels, int[,] mask)
-        {
-            unsafe
-            {
-                MIplImage m = img.MIplImage;
-                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
-                int widthStep = m.WidthStep;
-                int width = img.Width;
-                int height = img.Height;
-                int nChan = m.NChannels; // number of channels - 3
-                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
-                int x, y;
-
-                if (nChan == 3) // image in RGB
-                {
-                    for (y = 0; y < height; y++)
-                    {
-                        for (x = 0; x < width; x++)
-                        {
-                            bool intersection = false;
-                            for (int y_offset = (y == 0 ? 0 : -1); y_offset <= (y == height - 1 ? 0 : 1); y_offset++)
-                            {
-                                for (int x_offset = (x == 0 ? 0 : -1); x_offset <= (x == width - 1 ? 0 : 1); x_offset++)
-                                {
-                                    int maskVal = mask[1 + y_offset, 1 + x_offset];
-                                    if (maskVal == -1) continue;
-                                    if (pixels[y + y_offset, x + x_offset] == maskVal)
-                                    {
-                                        intersection = true;
-                                        goto maskIterationFinished;
-                                    }
-                                }
-                            }
-                        maskIterationFinished:
-
-                            if (intersection)
-                            {
-                                dataPtr[0] = 0;
-                                dataPtr[1] = 0;
-                                dataPtr[2] = 0;
-                            }
-
-                            // advance the pointer to the next pixel
-                            dataPtr += nChan;
-                        }
-
-                        //at the end of the line advance the pointer by the aligment bytes (padding)
-                        dataPtr += padding;
-                    }
-                }
-            }
-        }
-
-        private static void Erosion(Image<Bgr, byte> img, byte[,] pixels, int[,] mask)
-        {
-            unsafe
-            {
-                MIplImage m = img.MIplImage;
-                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
-                int widthStep = m.WidthStep;
-                int width = img.Width;
-                int height = img.Height;
-                int nChan = m.NChannels; // number of channels - 3
-                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
-                int x, y;
-
-                if (nChan == 3) // image in RGB
-                {
-                    for (y = 0; y < height; y++)
-                    {
-                        for (x = 0; x < width; x++)
-                        {
-                            bool diff = false;
-                            for(int y_offset = (y == 0 ? 0 : -1); y_offset <= (y == height-1 ? 0 : 1); y_offset++)
-                            {
-                                for (int x_offset = (x == 0 ? 0 : -1); x_offset <= (x == width-1 ? 0: 1); x_offset++)
-                                {
-                                    int maskVal = mask[1 + y_offset, 1 + x_offset];
-                                    if (maskVal == -1) continue;
-                                    if (pixels[y+y_offset,x+x_offset] != maskVal)
-                                    {
-                                        diff = true;
-                                        goto maskIterationFinished;
-                                    }
-                                }
-                            }
-                        maskIterationFinished:
-
-                            if (diff)
-                            {
-                                dataPtr[0] = 255;
-                                dataPtr[1] = 255;
-                                dataPtr[2] = 255;
-                            }
-
-                            // advance the pointer to the next pixel
-                            dataPtr += nChan;
-                        }
-
-                        //at the end of the line advance the pointer by the aligment bytes (padding)
-                        dataPtr += padding;
-                    }
-                }
-            }
-        }
-
-        public static void CompoundOperation(Image<Bgr, byte> img)
-        {
-            int[,] mask1 = {
-
-                {0,0,0},
-                {0,0,0},
-                {0,0,0}
-            };
-
-            byte[,] pixels = ConvertToBinary(img);
-
-            Erosion(img, pixels, mask1);
-            Dilation(img, pixels, mask1);
-        }
+ 
 
         /// <summary>
         /// QR code reader
