@@ -176,7 +176,7 @@ namespace SS_OpenCV
                 }
 
                 watch.Stop();
-                Console.WriteLine($"Execution Time: {watch.ElapsedMilliseconds} ms");
+                //Console.WriteLine($"Execution Time: {watch.ElapsedMilliseconds} ms");
 
                 return labels;
             }
