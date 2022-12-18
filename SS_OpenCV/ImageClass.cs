@@ -345,6 +345,8 @@ namespace SS_OpenCV
                     {
                         for (x = 0; x < width; x++)
                         {
+                            // Get coordinates from source/origin image
+                            // Note: change coordinate system's origin to perform rotation around the center of the image
                             origin_x = (int)Math.Round((x - rotPoint_x) * cos_theta - (rotPoint_y - y) * sin_theta + rotPoint_x);
                             origin_y = (int)Math.Round(rotPoint_y - (x - rotPoint_x) * sin_theta - (rotPoint_y - y) * cos_theta);
 
@@ -1963,7 +1965,7 @@ namespace SS_OpenCV
 
                             if (DEBUG_QR_BINARY)
                             {
-                                string correct = "100011101011111101010111110101101010000011001110000010010111110100101111011111001010101010001011101001000001100011110001001110011110110101100101110111000101010111001010110100001101000010101111110100010111011111001011001100010011000100001001001100001";
+                                string correct = "010110111011011010100010100001101011101111101111111101100010010101001010000100111101111110110010101110001000000101000010101000110110110010010011111110100000111011000010010110111011010110010110001110001001001010100011110010111110010000111110111011001";
                                 bool failed = false;
                                 if (sb[sb.Length - 1] != correct[sb.Length - 1])
                                 {
@@ -2142,8 +2144,8 @@ namespace SS_OpenCV
                     }
                     else
                     {
-                        rightVec = v1;
-                        downVec = v2;
+                        rightVec = v2;
+                        downVec = v1;
                     }
 
                     Vector2D ur = SSUtils.AddVectors(ul, rightVec);
@@ -2388,15 +2390,7 @@ namespace SS_OpenCV
                 double angle = SSUtils.AngleFromV1ToV2(qrpos.rightVec, new Vector2D { x = 1, y = 0 });
                 RotationAroundPoint(img, img.Copy(), (float)angle, qrpos.center.x, qrpos.center.y);
 
-                Console.WriteLine("qrpos.center.x " + qrpos.center.x);
-                Console.WriteLine("qrpos.center.y " + qrpos.center.y);
-                Console.WriteLine("qrpos.ul.x " + qrpos.ul.x);
-                Console.WriteLine("qrpos.ul.y " + qrpos.ul.y);
-                Console.WriteLine("Angle: " + angle);
                 qrposTransformed.ul = SSUtils.RotateVectorAroundPoint(qrpos.ul, angle, qrpos.center);
-                Console.WriteLine("qrposTransformed.ul.x " + qrposTransformed.ul.x);
-                Console.WriteLine("qrposTransformed.ul.y " + qrposTransformed.ul.y);
-
                 qrposTransformed.ur = SSUtils.RotateVectorAroundPoint(qrpos.ur, angle, qrpos.center);
                 qrposTransformed.ll = SSUtils.RotateVectorAroundPoint(qrpos.ll, angle, qrpos.center);
                 qrposTransformed.lr = SSUtils.RotateVectorAroundPoint(qrpos.lr, angle, qrpos.center);
@@ -2410,15 +2404,20 @@ namespace SS_OpenCV
                     double x_shear = -qrposTransformed.downVec.x / qrposTransformed.downVec.y;
                     Shear(img, img.Copy(), (float)x_shear, 0);
 
-                    qrposTransformed.ul = SSUtils.ShearVector(qrpos.ul, x_shear, 0);
-                    qrposTransformed.ur = SSUtils.ShearVector(qrpos.ur, x_shear, 0);
-                    qrposTransformed.ll = SSUtils.ShearVector(qrpos.ll, x_shear, 0);
-                    qrposTransformed.lr = SSUtils.ShearVector(qrpos.lr, x_shear, 0);
+
+                    qrposTransformed.ul = SSUtils.ShearVector(qrposTransformed.ul, x_shear, 0);
+                    qrposTransformed.ur = SSUtils.ShearVector(qrposTransformed.ur, x_shear, 0);
+                    qrposTransformed.ll = SSUtils.ShearVector(qrposTransformed.ll, x_shear, 0);
+                    qrposTransformed.lr = SSUtils.ShearVector(qrposTransformed.lr, x_shear, 0);
                     qrposTransformed.rightVec = SSUtils.SubVectors(qrposTransformed.ur, qrposTransformed.ul);
                     qrposTransformed.downVec = SSUtils.SubVectors(qrposTransformed.ll, qrposTransformed.ul);
                     qrposTransformed.diagonalVec = SSUtils.SubVectors(qrposTransformed.lr, qrposTransformed.ul);
                     //qrposTransformed.center = ...;
 
+                    Console.WriteLine("rightVec.ul.x: " + qrposTransformed.rightVec.x);
+                    Console.WriteLine("rightVec.ul.y: " + qrposTransformed.rightVec.y);
+                    Console.WriteLine("downVec.ur.x: " + qrposTransformed.downVec.x);
+                    Console.WriteLine("downVec.ur.y: " + qrposTransformed.downVec.y);
                 }
 
                 double positioningBlocksDistance = SSUtils.Norm(qrposTransformed.rightVec);
@@ -2426,7 +2425,7 @@ namespace SS_OpenCV
 
                 left = (int)Math.Round(qrposTransformed.ul.x - 3.5 * moduleSize);
                 right = (int)Math.Round(qrposTransformed.ul.x + 17.5 * moduleSize);
-                top = (int)Math.Round(qrposTransformed.ul.y - 3.5 * moduleSize);
+                top = (int)Math.Round(qrposTransformed.ul.y - 3.45 * moduleSize);
 
                 Console.WriteLine("moduleSize: " + moduleSize);
                 Console.WriteLine("left: " + left);
@@ -2443,7 +2442,7 @@ namespace SS_OpenCV
                 UR_y_out = (int)(qrpos.ur.y);
                 LL_x_out = (int)(qrpos.ll.x);
                 LL_y_out = (int)(qrpos.ll.y);
-                //BinaryOut = GetBinaryCode(ConvertToBinary(img), moduleSize, left, top, img);
+                BinaryOut = GetBinaryCode(ConvertToBinary(img), moduleSize, left, top, img);
             }
         }
     }
