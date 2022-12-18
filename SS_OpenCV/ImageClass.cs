@@ -464,6 +464,7 @@ namespace SS_OpenCV
                 int j, k;
                 int B_j_k, B_jp1_k, B_j_kp1, B_jp1_kp1;
                 int B_jpx_k, B_jpx_kp1, B_jpx_kpy;
+                float hAux, wAux;
 
                 Image<Bgr, byte> imgPadded = getPaddedImg(img, 1);
                 MIplImage mpadded = imgPadded.MIplImage;
@@ -479,8 +480,21 @@ namespace SS_OpenCV
                         for (x = 0; x < width; x++)
                         {
                             // Get coordinates from source/origin image
-                            origin_x = centerX + (x - centerX) / scaleFactor;
-                            origin_y = centerY + (y - centerY) / scaleFactor;
+                            if (centerX == 0 && centerY == 0)
+                            {
+                                wAux = 0;
+                                hAux = 0;
+                            }
+                            else
+                            {
+                                wAux = (width / 2) / scaleFactor;
+                                hAux = (height / 2) / scaleFactor;
+                            }
+
+
+                            origin_x = (int)Math.Round(centerX + x / scaleFactor - wAux);
+                            origin_y = (int)Math.Round(centerY + y / scaleFactor - hAux);
+
                             j = (int)origin_x;
                             k = (int)origin_y;
                             offset_x = origin_x - j;
