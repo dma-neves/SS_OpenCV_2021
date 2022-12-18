@@ -56,6 +56,40 @@ namespace SS_OpenCV
             }
         }
 
+        public static void RedChannel(Image<Bgr, byte> img)
+        {
+            unsafe
+            {
+                MIplImage m = img.MIplImage;
+                byte* dataPtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+                // byte blue, green, red, gray;
+                int width = img.Width;
+                int height = img.Height;
+                int nChan = m.NChannels; // number of channels - 3
+                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+                int x, y;
+
+                // Bgr aux;
+                for (y = 0; y < height; y++)
+                {
+                    for (x = 0; x < width; x++)
+                    {
+                        // acesso pela biblioteca : mais lento 
+                        //aux = img[y, x];
+                        //img[y, x] = new Bgr(255 - aux.Blue, 255 - aux.Green, 255 - aux.Red);
+
+
+                        dataPtr[0] = dataPtr[2];
+                        dataPtr[1] = dataPtr[2];
+
+                        dataPtr += nChan;
+                    }
+
+                    dataPtr += padding;
+                }
+            }
+        }
+
         /// <summary>
         /// Convert to gray
         /// Direct access to memory - faster method
@@ -248,14 +282,21 @@ namespace SS_OpenCV
                                 for(c = 0; c < 3; c++)
                                 {
                                     B_j_k = (dataBasePtrPadded + j * 3 + k * widthStepPadded)[c];
-                                    B_jp1_k = (dataBasePtrPadded + (j + 1) * 3 + k * widthStepPadded)[c];
-                                    B_j_kp1 = B_j_k = (dataBasePtrPadded + j * 3 + (k + 1) * widthStepPadded)[c];
-                                    B_jp1_kp1 = B_j_k = (dataBasePtrPadded + (j + 1) * 3 + (k + 1) * widthStepPadded)[c];
 
-                                    B_jpx_k = (int)((1 - offset_x) * B_j_k + offset_x * B_jp1_k);
-                                    B_jpx_kp1 = (int)((1 - offset_x) * B_j_kp1 + offset_x * B_jp1_kp1);
-                                    B_jpx_kpy = (int)((1 - offset_y) * B_jpx_k + offset_y * B_jpx_kp1);
-                                    dataPtr[c] = (byte)B_jpx_kpy;                                }
+                                    if (offset_x == 0 && offset_y == 0)
+                                        dataPtr[c] = (byte)B_j_k;
+                                    else
+                                    {
+                                        B_jp1_k = (dataBasePtrPadded + (j + 1) * 3 + k * widthStepPadded)[c];
+                                        B_j_kp1 = B_j_k = (dataBasePtrPadded + j * 3 + (k + 1) * widthStepPadded)[c];
+                                        B_jp1_kp1 = B_j_k = (dataBasePtrPadded + (j + 1) * 3 + (k + 1) * widthStepPadded)[c];
+
+                                        B_jpx_k = (int)((1.0 - offset_x) * B_j_k + offset_x * B_jp1_k);
+                                        B_jpx_kp1 = (int)((1.0 - offset_x) * B_j_kp1 + offset_x * B_jp1_kp1);
+                                        B_jpx_kpy = (int)((1.0 - offset_y) * B_jpx_k + offset_y * B_jpx_kp1);
+                                        dataPtr[c] = (byte)B_jpx_kpy;
+                                    }                         
+                                }
                             }
                             else
                             {
@@ -396,7 +437,16 @@ namespace SS_OpenCV
 
         public static void Scale(Image<Bgr, byte> img, Image<Bgr, byte> imgCopy, float scaleFactor)
         {
+            Scale_point_xy(img, imgCopy, scaleFactor, 0, 0);
+        }
 
+        public static void Scale_Bilinear(Image<Bgr, byte> img, Image<Bgr, byte> imgCopy, float scaleFactor)
+        {
+            Scale_point_xy_Bilinear(img, imgCopy, scaleFactor, 0, 0);
+        }
+
+        public static void Scale_point_xy_Bilinear(Image<Bgr, byte> img, Image<Bgr, byte> imgCopy, float scaleFactor, int centerX, int centerY)
+        {
             unsafe
             {
                 // direct access to the image memory(sequencial)
@@ -409,10 +459,17 @@ namespace SS_OpenCV
                 int height = img.Height;
                 int nChan = m.NChannels; // number of channels - 3
                 int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
-                int x, y, origin_x, origin_y;
+                int x, y, c;
+                double origin_x, origin_y, offset_x, offset_y;
+                int j, k;
+                int B_j_k, B_jp1_k, B_j_kp1, B_jp1_kp1;
+                int B_jpx_k, B_jpx_kp1, B_jpx_kpy;
 
-                MIplImage mcopy = imgCopy.MIplImage;
-                byte* dataPtrCopy = (byte*)mcopy.ImageData.ToPointer();
+                Image<Bgr, byte> imgPadded = getPaddedImg(img, 1);
+                MIplImage mpadded = imgPadded.MIplImage;
+                byte* dataBasePtrPadded = (byte*)mpadded.ImageData.ToPointer(); // Pointer to the image
+                int widthStepPadded = mpadded.WidthStep;
+                dataBasePtrPadded = dataBasePtrPadded + widthStepPadded * 1 + nChan * 1;
 
 
                 if (nChan == 3) // image in RGB
@@ -422,16 +479,36 @@ namespace SS_OpenCV
                         for (x = 0; x < width; x++)
                         {
                             // Get coordinates from source/origin image
-                            origin_x = (int)Math.Round(x / scaleFactor);
-                            origin_y = (int)Math.Round(y / scaleFactor);
+                            origin_x = centerX + (x - centerX) / scaleFactor;
+                            origin_y = centerY + (y - centerY) / scaleFactor;
+                            j = (int)origin_x;
+                            k = (int)origin_y;
+                            offset_x = origin_x - j;
+                            offset_y = origin_y - k;
+
+                            //Console.WriteLine("offset_x: " + offset_x);
 
                             if (origin_x >= 0 && origin_x < width && origin_y >= 0 && origin_y < height)
                             {
-                                byte* address = dataPtrCopy + origin_x * nChan + origin_y * widthStep;
-                                dataPtr[0] = (address)[0];
-                                dataPtr[1] = (address)[1];
-                                dataPtr[2] = (address)[2];
+                                // Bi-Linera interpolation
+                                for (c = 0; c < 3; c++)
+                                {
+                                    B_j_k = (dataBasePtrPadded + j * 3 + k * widthStepPadded)[c];
 
+                                    if (offset_x == 0 && offset_y == 0)
+                                        dataPtr[c] = (byte)B_j_k;
+                                    else
+                                    {
+                                        B_jp1_k = (dataBasePtrPadded + (j + 1) * 3 + k * widthStepPadded)[c];
+                                        B_j_kp1 = B_j_k = (dataBasePtrPadded + j * 3 + (k + 1) * widthStepPadded)[c];
+                                        B_jp1_kp1 = B_j_k = (dataBasePtrPadded + (j + 1) * 3 + (k + 1) * widthStepPadded)[c];
+
+                                        B_jpx_k = (int)((1.0 - offset_x) * B_j_k + offset_x * B_jp1_k);
+                                        B_jpx_kp1 = (int)((1.0 - offset_x) * B_j_kp1 + offset_x * B_jp1_kp1);
+                                        B_jpx_kpy = (int)((1.0 - offset_y) * B_jpx_k + offset_y * B_jpx_kp1);
+                                        dataPtr[c] = (byte)B_jpx_kpy;
+                                    }
+                                }
                             }
                             else
                             {
@@ -479,8 +556,8 @@ namespace SS_OpenCV
                         for (x = 0; x < width; x++)
                         {
                             // Get coordinates from source/origin image
-                            origin_x = (int)Math.Round( (x + centerX) / scaleFactor);
-                            origin_y = (int)Math.Round( (y + centerY) / scaleFactor);
+                            origin_x = (int)Math.Round(centerX + (x - centerX) / scaleFactor);
+                            origin_y = (int)Math.Round(centerY + (y - centerY) / scaleFactor);
 
                             if (origin_x >= 0 && origin_x < width && origin_y >= 0 && origin_y < height)
                             {
@@ -1337,6 +1414,72 @@ namespace SS_OpenCV
             }
         }
 
+        public static void Roberts(Image<Bgr, byte> img, Image<Bgr, byte> imgCopy)
+        {
+
+            int f, f_x_plus_one, f_y_plus_one, f_x_plus_one_y_plus_one;
+
+            unsafe
+            {
+                // direct access to the image memory(sequencial)
+                // direcion top left -> bottom right
+
+                MIplImage m = img.MIplImage;
+                byte* dataBasePtr = (byte*)m.ImageData.ToPointer(); // Pointer to the image
+                int widthStep = m.WidthStep;
+                int width = img.Width;
+                int height = img.Height;
+                int nChan = m.NChannels; // number of channels - 3
+                int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
+                int x, y, chan;
+
+
+                Image<Bgr, byte> imgPadded = getPaddedImg(img, 1);
+                MIplImage mpadded = imgPadded.MIplImage;
+                byte* dataBasePtrPadded = (byte*)mpadded.ImageData.ToPointer(); // Pointer to the image
+                int widthStepPadded = mpadded.WidthStep;
+                int widthPadded = imgPadded.Width;
+                int heightPadded = imgPadded.Height;
+                int paddingPadded = mpadded.WidthStep - mpadded.NChannels * mpadded.Width; // alinhament bytes (padding)
+
+                int sx, sy, s;
+
+                if (nChan == 3) // image in RGB
+                {
+                    byte* dataPtr = dataBasePtr;
+                    byte* dataPtrPadded = dataBasePtrPadded + widthStepPadded + nChan;
+
+                    for (y = 0; y < height; y++)
+                    {
+                        for (x = 0; x < width; x++)
+                        {
+                            for (chan = 0; chan < nChan; chan++)
+                            {
+                                f = (dataPtrPadded)[chan];
+                                f_x_plus_one = (dataPtrPadded + nChan)[chan];
+                                f_y_plus_one = (dataPtrPadded + widthStepPadded)[chan];
+                                f_x_plus_one_y_plus_one = (dataPtrPadded + widthStepPadded + nChan)[chan];
+
+                                sx = f - f_x_plus_one_y_plus_one;
+                                sy = f_x_plus_one - f_y_plus_one;
+                                s = Math.Abs(sx) + Math.Abs(sy);
+                                s = s < 0 ? 0 : (s > 255 ? 255 : s);
+                                dataPtr[chan] = (byte)s;
+                            }
+
+
+                            // advance the pointer to the next pixel
+                            dataPtr += nChan;
+                            dataPtrPadded += nChan;
+                        }
+
+                        dataPtr += padding;
+                        dataPtrPadded += nChan + paddingPadded + nChan;
+                    }
+                }
+            }
+        }
+
         public static void Diferentiation(Image<Bgr, byte> img, Image<Bgr, byte> imgCopy)
         {
             int f,f_x_plus_one, f_y_plus_one;
@@ -1580,6 +1723,25 @@ namespace SS_OpenCV
             }
         }
 
+        public static int[,] Histogram_All(Emgu.CV.Image<Bgr, byte> img)
+        {
+            int[] hist_gray = Histogram_Gray(img);
+            int[,] hist_rgb = Histogram_RGB(img);
+
+            int[,] hist_all = new int[4, 256];
+
+            for (int i = 0; i < 256; i++)
+            {
+                hist_all[0, i] = hist_gray[i];
+                hist_all[1, i] = hist_rgb[0, i];
+                hist_all[2, i] = hist_rgb[1, i];
+                hist_all[3, i] = hist_rgb[2, i];
+
+            }
+
+            return hist_all;
+        }
+
         public static void ConvertToBW(Emgu.CV.Image<Bgr, byte> img, int threshold)
         {
             unsafe
@@ -1809,11 +1971,6 @@ namespace SS_OpenCV
                                 {
                                     Console.WriteLine("Failed at x: " + x + " y: " + y);
                                     Console.WriteLine("value: " + sb[sb.Length - 1]);
-                                    Console.WriteLine("left: " + (left + x * moduleSize));
-                                    Console.WriteLine("right: " + (int)Math.Round(left + (x + 1) * moduleSize - 1));
-                                    Console.WriteLine("top: " + (int)Math.Round(top + y * moduleSize));
-                                    Console.WriteLine("bottom: " + (int)Math.Round(top + (y + 1) * moduleSize - 1));
-
                                     Console.WriteLine("");
                                     failed = true;
                                 }
@@ -2235,6 +2392,8 @@ namespace SS_OpenCV
                 left = (int)Math.Round(topLeftAfterRotation.x - 3.5 * positioningBlocksDistance / 14.0);
                 right = (int)Math.Round(topLeftAfterRotation.x + 17.5 * positioningBlocksDistance / 14.0);
                 top = (int)Math.Round(topLeftAfterRotation.y - 3.45 * positioningBlocksDistance / 14.0);
+
+                //Console.WriteLine("topLeftAfterRotation.y" + topLeftAfterRotation.y);
 
                 double moduleSize = positioningBlocksDistance / 14.0;
                 Width = (int)(moduleSize * 21.0);

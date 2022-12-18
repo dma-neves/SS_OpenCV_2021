@@ -58,6 +58,7 @@
             this.scaleToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.rotationBiLinearToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.shearToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.scaleAroundPointToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.filtersToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mediaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.meanSolutionBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -77,7 +78,7 @@
             this.ImageViewer = new Emgu.CV.UI.ImageBox();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.statusLabel = new System.Windows.Forms.ToolStripStatusLabel();
-            this.scaleAroundPointToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.robertsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.ImageViewer)).BeginInit();
@@ -262,43 +263,50 @@
             // translationToolStripMenuItem
             // 
             this.translationToolStripMenuItem.Name = "translationToolStripMenuItem";
-            this.translationToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.translationToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
             this.translationToolStripMenuItem.Text = "Translation";
             this.translationToolStripMenuItem.Click += new System.EventHandler(this.translationToolStripMenuItem_Click);
             // 
             // rotationToolStripMenuItem
             // 
             this.rotationToolStripMenuItem.Name = "rotationToolStripMenuItem";
-            this.rotationToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.rotationToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
             this.rotationToolStripMenuItem.Text = "Rotation";
             this.rotationToolStripMenuItem.Click += new System.EventHandler(this.rotationToolStripMenuItem_Click);
             // 
             // zoomToolStripMenuItem
             // 
             this.zoomToolStripMenuItem.Name = "zoomToolStripMenuItem";
-            this.zoomToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.zoomToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
             this.zoomToolStripMenuItem.Text = "Zoom";
             // 
             // scaleToolStripMenuItem
             // 
             this.scaleToolStripMenuItem.Name = "scaleToolStripMenuItem";
-            this.scaleToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.scaleToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
             this.scaleToolStripMenuItem.Text = "Scale";
             this.scaleToolStripMenuItem.Click += new System.EventHandler(this.scaleToolStripMenuItem_Click);
             // 
             // rotationBiLinearToolStripMenuItem
             // 
             this.rotationBiLinearToolStripMenuItem.Name = "rotationBiLinearToolStripMenuItem";
-            this.rotationBiLinearToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.rotationBiLinearToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
             this.rotationBiLinearToolStripMenuItem.Text = "Rotation Bi-Linear";
             this.rotationBiLinearToolStripMenuItem.Click += new System.EventHandler(this.rotationBiLinearToolStripMenuItem_Click);
             // 
             // shearToolStripMenuItem
             // 
             this.shearToolStripMenuItem.Name = "shearToolStripMenuItem";
-            this.shearToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.shearToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
             this.shearToolStripMenuItem.Text = "Shear";
             this.shearToolStripMenuItem.Click += new System.EventHandler(this.shearToolStripMenuItem_Click);
+            // 
+            // scaleAroundPointToolStripMenuItem
+            // 
+            this.scaleAroundPointToolStripMenuItem.Name = "scaleAroundPointToolStripMenuItem";
+            this.scaleAroundPointToolStripMenuItem.Size = new System.Drawing.Size(175, 22);
+            this.scaleAroundPointToolStripMenuItem.Text = "Scale Around Point";
+            this.scaleAroundPointToolStripMenuItem.Click += new System.EventHandler(this.scaleAroundPointToolStripMenuItem_Click);
             // 
             // filtersToolStripMenuItem
             // 
@@ -309,7 +317,8 @@
             this.sobelToolStripMenuItem,
             this.diffeToolStripMenuItem,
             this.medianToolStripMenuItem,
-            this.median3DToolStripMenuItem});
+            this.median3DToolStripMenuItem,
+            this.robertsToolStripMenuItem});
             this.filtersToolStripMenuItem.Name = "filtersToolStripMenuItem";
             this.filtersToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.filtersToolStripMenuItem.Text = "Filters";
@@ -317,49 +326,49 @@
             // mediaToolStripMenuItem
             // 
             this.mediaToolStripMenuItem.Name = "mediaToolStripMenuItem";
-            this.mediaToolStripMenuItem.Size = new System.Drawing.Size(169, 22);
+            this.mediaToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.mediaToolStripMenuItem.Text = "Mean - solution A";
             this.mediaToolStripMenuItem.Click += new System.EventHandler(this.mediaToolStripMenuItem_Click);
             // 
             // meanSolutionBToolStripMenuItem
             // 
             this.meanSolutionBToolStripMenuItem.Name = "meanSolutionBToolStripMenuItem";
-            this.meanSolutionBToolStripMenuItem.Size = new System.Drawing.Size(169, 22);
+            this.meanSolutionBToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.meanSolutionBToolStripMenuItem.Text = "Mean - solution B";
             this.meanSolutionBToolStripMenuItem.Click += new System.EventHandler(this.meanSolutionBToolStripMenuItem_Click);
             // 
             // nonLinearToolStripMenuItem
             // 
             this.nonLinearToolStripMenuItem.Name = "nonLinearToolStripMenuItem";
-            this.nonLinearToolStripMenuItem.Size = new System.Drawing.Size(169, 22);
+            this.nonLinearToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.nonLinearToolStripMenuItem.Text = "Non-Uniform";
             this.nonLinearToolStripMenuItem.Click += new System.EventHandler(this.nonLinearToolStripMenuItem_Click);
             // 
             // sobelToolStripMenuItem
             // 
             this.sobelToolStripMenuItem.Name = "sobelToolStripMenuItem";
-            this.sobelToolStripMenuItem.Size = new System.Drawing.Size(169, 22);
+            this.sobelToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.sobelToolStripMenuItem.Text = "Sobel";
             this.sobelToolStripMenuItem.Click += new System.EventHandler(this.sobelToolStripMenuItem_Click);
             // 
             // diffeToolStripMenuItem
             // 
             this.diffeToolStripMenuItem.Name = "diffeToolStripMenuItem";
-            this.diffeToolStripMenuItem.Size = new System.Drawing.Size(169, 22);
+            this.diffeToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.diffeToolStripMenuItem.Text = "Differentiation";
             this.diffeToolStripMenuItem.Click += new System.EventHandler(this.diffeToolStripMenuItem_Click);
             // 
             // medianToolStripMenuItem
             // 
             this.medianToolStripMenuItem.Name = "medianToolStripMenuItem";
-            this.medianToolStripMenuItem.Size = new System.Drawing.Size(169, 22);
+            this.medianToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.medianToolStripMenuItem.Text = "Median";
             this.medianToolStripMenuItem.Click += new System.EventHandler(this.medianToolStripMenuItem_Click);
             // 
             // median3DToolStripMenuItem
             // 
             this.median3DToolStripMenuItem.Name = "median3DToolStripMenuItem";
-            this.median3DToolStripMenuItem.Size = new System.Drawing.Size(169, 22);
+            this.median3DToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.median3DToolStripMenuItem.Text = "Median3D";
             this.median3DToolStripMenuItem.Click += new System.EventHandler(this.median3DToolStripMenuItem_Click);
             // 
@@ -457,12 +466,12 @@
             this.statusLabel.Size = new System.Drawing.Size(49, 17);
             this.statusLabel.Text = "X :-   Y:-";
             // 
-            // scaleAroundPointToolStripMenuItem
+            // robertsToolStripMenuItem
             // 
-            this.scaleAroundPointToolStripMenuItem.Name = "scaleAroundPointToolStripMenuItem";
-            this.scaleAroundPointToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.scaleAroundPointToolStripMenuItem.Text = "Scale Around Point";
-            this.scaleAroundPointToolStripMenuItem.Click += new System.EventHandler(this.scaleAroundPointToolStripMenuItem_Click);
+            this.robertsToolStripMenuItem.Name = "robertsToolStripMenuItem";
+            this.robertsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.robertsToolStripMenuItem.Text = "Roberts";
+            this.robertsToolStripMenuItem.Click += new System.EventHandler(this.robertsToolStripMenuItem_Click);
             // 
             // MainForm
             // 
@@ -538,6 +547,7 @@
         private System.Windows.Forms.ToolStripMenuItem compoundToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem shearToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem scaleAroundPointToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem robertsToolStripMenuItem;
     }
 }
 
