@@ -544,10 +544,11 @@ namespace SS_OpenCV
                 int nChan = m.NChannels; // number of channels - 3
                 int padding = m.WidthStep - m.NChannels * m.Width; // alinhament bytes (padding)
                 int x, y, origin_x, origin_y;
+                float wAux, hAux;
 
                 MIplImage mcopy = imgCopy.MIplImage;
                 byte* dataPtrCopy = (byte*)mcopy.ImageData.ToPointer();
-
+                
 
                 if (nChan == 3) // image in RGB
                 {
@@ -555,9 +556,22 @@ namespace SS_OpenCV
                     {
                         for (x = 0; x < width; x++)
                         {
-                            // Get coordinates from source/origin image
-                            origin_x = (int)Math.Round(centerX + (x - centerX) / scaleFactor);
-                            origin_y = (int)Math.Round(centerY + (y - centerY) / scaleFactor);
+                             // Get coordinates from source/origin image
+                             if(centerX == 0 && centerY == 0)
+                             {
+                                 wAux = 0;
+                                 hAux = 0;
+                             }
+                             else
+                             {
+                                 wAux = (width / 2) / scaleFactor;
+                                 hAux = (height / 2) / scaleFactor;
+                             }                            
+
+
+                             origin_x = (int)Math.Round(centerX + x / scaleFactor - wAux);
+                             origin_y = (int)Math.Round(centerY + y / scaleFactor - hAux);
+
 
                             if (origin_x >= 0 && origin_x < width && origin_y >= 0 && origin_y < height)
                             {
